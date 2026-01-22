@@ -103,7 +103,7 @@ async def update_preferences(prefs: Dict[str, Any]):
     
     # Apply system proxy if changed
     if "system_proxy" in prefs:
-        set_linux_proxy(prefs["system_proxy"], index.preferences.mixed_port)
+        set_system_proxy(prefs["system_proxy"], index.preferences.mixed_port)
     
     # Apply to config.yaml if a profile is selected
     if index.selected:
@@ -165,22 +165,13 @@ async def get_system_info():
     }
 
 # Helpers
-def set_linux_proxy(enable: bool, port: int = 7890):
-    """Set system proxy for GNOME/Linux"""
-    try:
-        mode = "manual" if enable else "none"
-        # Use gsettings as a best effort for Linux
-        os.system(f"gsettings set org.gnome.system.proxy mode '{mode}'")
-        if enable:
-            os.system(f"gsettings set org.gnome.system.proxy.http host '127.0.0.1'")
-            os.system(f"gsettings set org.gnome.system.proxy.http port {port}")
-            os.system(f"gsettings set org.gnome.system.proxy.https host '127.0.0.1'")
-            os.system(f"gsettings set org.gnome.system.proxy.https port {port}")
-            os.system(f"gsettings set org.gnome.system.proxy.socks host '127.0.0.1'")
-            os.system(f"gsettings set org.gnome.system.proxy.socks port {port}")
-        print(f"System proxy {'enabled' if enable else 'disabled'}")
-    except Exception as e:
-        print(f"Error setting system proxy: {e}")
+def set_system_proxy(enable: bool, port: int = 7890):
+    """
+    System Proxy is managed manually or via TUN mode in Server environments.
+    This function currently does nothing to avoid conflicting with Server OS networking.
+    """
+    print(f"[Info] System Proxy preference set to: {enable} (OS configuration skipped for Server/Docker compatibility)")
+
 
 def load_index() -> ProfilesIndex:
     if not os.path.exists(PROFILES_INDEX):
@@ -624,7 +615,7 @@ async def select_profile(profile_id: str):
                 profile_config["tun"]["enable"] = False
         
         # Also apply system proxy if enabled
-        set_linux_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
+        set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
 
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.safe_dump(profile_config, f)
