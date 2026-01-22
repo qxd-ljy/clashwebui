@@ -4,8 +4,6 @@
 
 <img src="docs/logo.svg" width="100" height="100" alt="ClashWebUI Logo" />
 
-![ClashWebUI](docs/screenshot.png)
-
 **ClashWebUI: 现代化 Clash 网页控制台**
 
 基于 **React 18** + **FastAPI** 构建，提供与原版客户端一致的 "Premium" 级视觉体验与交互逻辑。
@@ -61,6 +59,7 @@ clashwebui/
 
 ### 1. 启动容器
 
+#### Linux / macOS
 ```bash
 docker run -d \
   --name clashwebui \
@@ -70,7 +69,21 @@ docker run -d \
   qxdljy/clashwebui:latest
 ```
 
-*注意：建议使用 `--network host` 模式，以确保容器能直接访问宿主机的 Clash 外部控制端口 (通常是 127.0.0.1:9090)。*
+#### Windows (PowerShell)
+```powershell
+docker run -d `
+  --name clashwebui `
+  --restart always `
+  -p 3001:3001 `
+  -v $HOME/.config/clash:/root/.config/clash `
+  -e "DEFAULT_CONTROLLER=host.docker.internal:9090" `
+  qxdljy/clashwebui:latest
+```
+
+*注意:*
+- **Linux**: 建议使用 `--network host`。
+- **Windows**: 由于不支持 host 网络，需映射端口 `3001`。
+- **内核连接**: 在 Windows 上，容器访问宿主机内核需使用 `host.docker.internal` (例如在设置中填写 `host.docker.internal:9090`)。
 
 ### 2. CI/CD 自动构建
 
