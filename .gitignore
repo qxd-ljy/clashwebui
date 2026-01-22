@@ -30,7 +30,7 @@ venv/
 *.swo
 
 # User Exclusions
-requirements.txt
+
 .agent/
 clash-verge-rev/
 contexts/
