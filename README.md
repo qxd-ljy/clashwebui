@@ -14,6 +14,8 @@
 
 ## ✨ 特性
 
+<div align="center">
+
 | 模块 | 功能描述 |
 | :--- | :--- |
 | **仪表盘** (Dashboard) | 🚀 实时流量/内存/连接数监控 (WebSocket)<br>🌍 IP 归属地深度查询 (支持代理/直连对比)<br>⚡️ 真实网站测速 (Apple/Google/GitHub) |
@@ -21,6 +23,7 @@
 | **配置管理** (Profiles) | 📝 **多格式支持**: 兼容本地 YAML 文件与远程 URL 订阅<br>✏️ **高级编辑器**: 内置 Monaco Editor，支持 YAML 高亮与校验<br>🔄 **自动更新**: 支持设置订阅自动更新间隔 |
 | **连接控制** (Connections) | 🔌 **实时会话**: 查看当前活动连接<br>🚫 **连接管理**: 支持一键断开指定连接 |
 | **系统设置** (Settings) | 🛡️ **TUN 模式**: 一键开启虚拟网卡接管系统流量<br>⚙️ **混合端口**: 统一 HTTP/SOCKS5 端口配置<br>🔌 **开机自启**: 支持 Systemd 服务级开机自启 (WebUI + Core) |
+</div>
 
 ## 🏗️ 架构设计
 
@@ -135,6 +138,7 @@ npm run dev
 - `GET /system_info`: 获取系统版本、Clash 运行模式及开机时间。
 - `POST /preferences`: 更新系统设置（混合端口、External Controller 地址、密钥）。
 - `GET /proxy_geoip`: 通过代理通道获取当前 IP 的 GeoIP 信息。
+- **`GET/POST /auto_start`**: 配置 Systemd 开机自启服务 (Clash Core + WebUI)。
 
 ### 配置文件 (Profile)
 配置存储于 `~/.config/clash/profiles/`。
@@ -146,6 +150,8 @@ npm run dev
 
 ## 🗺️ 前端路由
 
+<div align="center">
+
 | 路径 | 页面组件 | 说明 |
 | :--- | :--- | :--- |
 | `/` | `Dashboard` | 系统概览与监控 |
@@ -156,6 +162,8 @@ npm run dev
 | `/logs` | `Logs` | 实时内核日志 |
 | `/settings` | `Settings` | 系统偏好设置 |
 | `/test` | `Test` | 流媒体解锁检测 |
+
+</div>
 
 ## ❓ 常见问题
 
