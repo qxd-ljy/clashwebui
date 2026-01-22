@@ -28,10 +28,9 @@
 
 ```mermaid
 graph TD
-    User["用户浏览器"] <--> |HTTP/WebSocket| Docker["Docker Container (ClashWebUI)"]
-    subgraph Docker
-        Web["静态资源 (/docs, /assets)"]
-        Server["FastAPI 后端"]
+    User["用户浏览器"] <--> |HTTP/WebSocket| Web["前端 (Static) / API 代理"]
+    subgraph DockerEnv [Docker 容器]
+        Web <--> |Internal| Server["FastAPI 后端"]
     end
     Web <--> |Internal| Server
     Server <--> |REST API| Kernel["Clash 内核 (Mihomo)"]
