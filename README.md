@@ -1,10 +1,10 @@
-# Clash Verge Rev Web
+# ClashWebUI
 
 <div align="center">
 
-![Clash Verge Rev Web](https://github.com/user-attachments/assets/placeholder.png)
+![ClashWebUI](https://github.com/user-attachments/assets/placeholder.png)
 
-**Clash Verge Rev 的现代化 Web 复刻版**
+**ClashWebUI: 现代化 Clash 网页控制台**
 
 基于 **React 18** + **FastAPI** 构建，提供与原版客户端一致的 "Premium" 级视觉体验与交互逻辑。
 
@@ -16,7 +16,7 @@
 
 | 模块 | 功能描述 |
 | :--- | :--- |
-| **仪表盘** (Dashboard) | � 实时流量/内存/连接数监控 (WebSocket)<br>🌍 IP 归属地深度查询 (支持代理/直连对比)<br>⚡️ 真实网站测速 (Apple/Google/GitHub) |
+| **仪表盘** (Dashboard) | 🚀 实时流量/内存/连接数监控 (WebSocket)<br>🌍 IP 归属地深度查询 (支持代理/直连对比)<br>⚡️ 真实网站测速 (Apple/Google/GitHub) |
 | **代理管理** (Proxies) | 🌲 **策略组智能排序**: 优先级逻辑优化 (Global > Select > Others)<br>🔗 **链式代理**: 可视化查看流量经过的代理链<br>🚥 **延迟测试**: 支持并发测速与单节点重测 |
 | **配置管理** (Profiles) | 📝 **多格式支持**: 兼容本地 YAML 文件与远程 URL 订阅<br>✏️ **高级编辑器**: 内置 Monaco Editor，支持 YAML 高亮与校验<br>🔄 **自动更新**: 支持设置订阅自动更新间隔 |
 | **连接控制** (Connections) | 🔌 **实时会话**: 查看当前活动连接<br>🚫 **连接管理**: 支持一键断开指定连接 |
@@ -28,10 +28,10 @@
 
 ```mermaid
 graph TD
-    User[用户浏览器] <--> |HTTP/WebSocket| Web[React 前端 (Vite)]
-    Web <--> |REST API| Server[FastAPI 后端 (Python)]
-    Server <--> |Ext Controller| Kernel[Clash 内核 (Mihomo)]
-    Server --> |Read/Write| Config[配置文件 (~/.config/clash)]
+    User["用户浏览器"] <-->|HTTP/WebSocket| Web["React 前端 (Vite)"]
+    Web <-->|REST API| Server["FastAPI 后端 (Python)"]
+    Server <-->|Ext Controller| Kernel["Clash 内核 (Mihomo)"]
+    Server -->|Read/Write| Config["配置文件 (~/.config/clash)"]
 ```
 
 ### 目录结构
@@ -89,7 +89,7 @@ npm run dev
 # 访问地址: http://localhost:5173
 ```
 
-## � 后端 API
+## 🔌 后端 API
 
 后端服务运行在端口 `3001`，提供以下核心 API：
 
@@ -130,6 +130,6 @@ A: 在 `设置 (Settings)` 页面中可以修改 "外部控制 (External Control
 **Q: 配置文件保存在哪里？**
 A: Linux 系统下默认保存在 `/home/$USER/.config/clash/profiles`。
 
-## � 许可证
+## 📜 许可证
 
 MIT License
