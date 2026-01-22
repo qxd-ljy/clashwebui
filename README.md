@@ -4,8 +4,6 @@
 
 <img src="docs/logo.svg" width="100" height="100" alt="ClashWebUI Logo" />
 
-![ClashWebUI](docs/screenshot.png)
-
 **ClashWebUI: 现代化 Clash 网页控制台**
 
 基于 **React 18** + **FastAPI** 构建，提供与原版客户端一致的 "Premium" 级视觉体验与交互逻辑。
