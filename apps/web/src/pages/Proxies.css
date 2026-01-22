@@ -1,0 +1,122 @@
+.proxies-page .proxy-group-card {
+    margin-bottom: 24px;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    cursor: pointer;
+}
+
+.group-info {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.group-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.group-type {
+    font-size: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+}
+
+.group-count {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+
+.latency-test-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.latency-test-btn:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-primary);
+}
+
+.group-nodes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.proxy-node {
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.proxy-node:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.proxy-node.active {
+    background-color: var(--color-primary);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.proxy-name-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.proxy-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.proxy-node.active .proxy-name {
+    color: #fff;
+}
+
+.proxy-type {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+}
+
+.proxy-node.active .proxy-type {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.proxy-latency {
+    font-size: 12px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.proxy-node.active .proxy-latency {
+    color: #fff !important;
+}

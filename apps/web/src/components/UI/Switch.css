@@ -1,0 +1,46 @@
+/* Switch Component */
+.ui-switch {
+    width: 44px;
+    height: 24px;
+    background-color: var(--bg-secondary);
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.ui-switch:hover {
+    border-color: var(--text-3);
+    background-color: var(--muted);
+}
+
+.ui-switch.checked {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 15px var(--primary-glow), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.switch-thumb {
+    width: 18px;
+    height: 18px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 1.5px;
+    left: 1.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ui-switch.checked .switch-thumb {
+    transform: translateX(20px);
+    box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ui-switch.no-transition,
+.ui-switch.no-transition .switch-thumb {
+    transition: none !important;
+}

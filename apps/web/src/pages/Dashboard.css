@@ -1,0 +1,249 @@
+.dashboard-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    gap: 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+}
+
+.dash-card {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    border: none;
+}
+
+.dash-card h3 {
+    font-size: 16px;
+    margin: 0 0 16px 0;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* Quadrant 1: Profile */
+.profile-card .card-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.profile-icon {
+    background: rgba(94, 92, 230, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.profile-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+}
+
+.profile-info p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.update-btn {
+    margin-left: auto;
+    background: transparent;
+    color: #5e5ce6;
+    border: 1px solid rgba(94, 92, 230, 0.2);
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.usage-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.usage-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.progress-bg {
+    background: rgba(255, 255, 255, 0.1);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: #5e5ce6;
+    height: 100%;
+}
+
+/* Quadrant 2: Node */
+.node-card .card-header h3 {
+    margin: 0;
+}
+
+.node-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.more-link {
+    color: #5e5ce6;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.node-detail {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.node-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.node-name {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.node-ping {
+    color: #30d158;
+}
+
+.node-tags {
+    display: flex;
+    gap: 8px;
+}
+
+.tag {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.selector-row label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+
+.ui-select {
+    width: 100%;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-radius: 6px;
+}
+
+/* Quadrant 3: Net */
+.setting-toggles {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.toggle-btn.active {
+    background: #5e5ce6;
+    color: #fff;
+}
+
+.active .lucide {
+    color: #fff;
+}
+
+/* Ensure icon is white when active */
+.tun-status-msg {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-top: auto;
+}
+
+/* Quadrant 4: Mode */
+.mode-switcher {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.mode-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.mode-item.active {
+    background: #5e5ce6;
+    color: #fff;
+}
+
+.mode-desc {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    padding: 12px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+/* Footer */
+.traffic-footer {
+    background: var(--color-bg-card);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tf-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: monospace;
+    font-size: 13px;
+}

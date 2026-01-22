@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* Premium Light Color System */
+    --bg: #FAFBFC;
+    /* Soft white background */
+    --bg-secondary: #F3F5F7;
+    /* Secondary light */
+    --card: rgba(255, 255, 255, 0.95);
+    /* Crisp white card with subtle transparency */
+    --border: rgba(0, 0, 0, 0.06);
+    /* Subtle dark border */
+    --muted: #F7F8FA;
+    /* Very light gray */
+
+    --text: #0F172A;
+    /* Deep navy text */
+    --text-2: #64748B;
+    /* Slate gray */
+    --text-3: #94A3B8;
+    /* Light slate */
+
+    --primary: #3B82F6;
+    /* Vibrant blue */
+    --primary-soft: #EFF6FF;
+    /* Light blue background */
+    --primary-glow: rgba(59, 130, 246, 0.15);
+
+    --danger: #EF4444;
+    --danger-soft: #FEF2F2;
+    --danger-border: rgba(239, 68, 68, 0.2);
+
+    --success: #10B981;
+    --success-soft: #F0FDF4;
+
+    --accent: #06B6D4;
+    /* Cyan accent - Tech feel */
+    --accent-soft: #ECFEFF;
+
+    --radius-card: 20px;
+    --radius-btn: 14px;
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05),
+        0 10px 30px rgba(0, 0, 0, 0.08),
+        0 0 1px rgba(0, 0, 0, 0.05) inset;
+    --shadow-glow: 0 0 20px var(--primary-glow);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-text antialiased;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        letter-spacing: -0.011em;
+        /* Tighter tracking for Inter */
+        background: linear-gradient(135deg, #FAFBFC 0%, #F0F4F8 50%, #E8EEF4 100%);
+        background-attachment: fixed;
+    }
+
+    /* Subtle grain texture */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.015;
+        z-index: -1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    code,
+    pre {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+    }
+}
+
+@layer components {
+
+    /* Premium Glass Card */
+    .glass-card {
+        @apply bg-card backdrop-blur-xl border border-border;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Primary Button */
+    .btn-primary {
+        @apply px-4 py-2 rounded-xl font-medium;
+        @apply bg-primary text-white border border-primary;
+        @apply hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20;
+        @apply transition-all duration-200;
+    }
+
+    /* Icon Button */
+    .btn-icon {
+        @apply w-9 h-9 flex items-center justify-center rounded-xl;
+        @apply bg-card/80 backdrop-blur-sm border border-border;
+        @apply text-text-2 hover:text-primary hover:border-primary/30 hover:shadow-md;
+        @apply transition-all duration-200;
+    }
+
+    /* Card Title */
+    .card-title {
+        @apply text-xl font-bold text-text;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+
+    /* Subtle Gradient Background */
+    .gradient-subtle {
+        background: linear-gradient(135deg,
+                rgba(59, 130, 246, 0.03) 0%,
+                transparent 50%,
+                rgba(139, 92, 246, 0.03) 100%);
+    }
+
+    /* Elegant Hover Glow */
+    .border-glow {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .border-glow::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg,
+                transparent 30%,
+                rgba(59, 130, 246, 0.15) 50%,
+                transparent 70%);
+        background-size: 200% 200%;
+        animation: shimmer 3s linear infinite;
+        border-radius: inherit;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .border-glow:hover::before {
+        opacity: 1;
+    }
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    /* Reduce motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}

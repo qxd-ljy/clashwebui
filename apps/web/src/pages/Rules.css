@@ -1,0 +1,59 @@
+.rules-list {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-base);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rule-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rule-item:last-child {
+    border-bottom: none;
+}
+
+.rule-item:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.rule-index {
+    width: 40px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    opacity: 0.5;
+}
+
+.rule-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.rule-payload {
+    font-weight: 500;
+    color: var(--color-text-primary);
+    font-size: 14px;
+}
+
+.rule-type {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+
+.rule-proxy {
+    margin-left: 16px;
+}
+
+.proxy-tag {
+    font-size: 13px;
+    color: #5e5ce6;
+    font-weight: 500;
+    background-color: rgba(94, 92, 230, 0.1);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
