@@ -33,4 +33,4 @@ venv/
 
 .agent/
 clash-verge-rev/
-contexts/
+/contexts/
