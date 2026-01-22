@@ -138,6 +138,15 @@ export const getSystemInfo = async () => {
     return res.json();
 };
 
+export const setAutoStart = async (enable) => {
+    const res = await fetch(`${BACKEND_BASE}/auto_start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable })
+    });
+    return res.json();
+};
+
 export const getProfileContent = async (id) => {
     const res = await fetch(`${BACKEND_BASE}/profiles/${id}/content`);
     return res.json();

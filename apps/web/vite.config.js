@@ -19,25 +19,20 @@ export default defineConfig({
       clientPort: 5010, // Force client to connect to the same port
     },
     proxy: {
-      '/api/memory': {
-        target: 'http://127.0.0.1:3001',
-        changeOrigin: true,
-        ws: true,
-        rewrite: (path) => path.replace(/^\/api\/memory/, '/memory'),
-      },
-      '/api': {
-        target: 'http://127.0.0.1:9092',
-        changeOrigin: true,
-        ws: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+      // Backend API (ClashWebUI后端)
       '/backend': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
-        // rewrite: (path) => path.replace(/^\/backend/, ''), // Backend now serves at /backend
+        ws: false,
+      },
+      // Clash External Controller API  
+      '/api': {
+        target: 'http://127.0.0.1:9092',
+        changeOrigin: true,
+        ws: true, // Enable WebSocket proxy
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
-
 
 })

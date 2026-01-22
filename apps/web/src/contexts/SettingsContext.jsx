@@ -15,6 +15,10 @@ export const SettingsProvider = ({ children }) => {
         backendPort: 3001,
         externalController: '127.0.0.1:9092',
         secret: '',
+        clashBinaryPath: '~/.bin/clash',
+        clashConfigDir: '~/.config/clash',
+        pythonInterpreterPath: null,
+        webuiWorkingDirectory: null,
         isInitialLoading: true
     });
 
@@ -37,6 +41,10 @@ export const SettingsProvider = ({ children }) => {
                 backendPort: preferences.backend_port || 3001,
                 externalController: preferences.external_controller || configData['external-controller'] || '127.0.0.1:9092',
                 secret: preferences.secret !== undefined ? preferences.secret : (configData.secret || ''),
+                clashBinaryPath: preferences.clash_binary_path || '~/.bin/clash',
+                clashConfigDir: preferences.clash_config_dir || '~/.config/clash',
+                pythonInterpreterPath: preferences.python_interpreter_path || null,
+                webuiWorkingDirectory: preferences.webui_working_directory || null,
                 isInitialLoading: false
             }));
         } catch (error) {

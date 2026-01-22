@@ -6,6 +6,22 @@ import {
 } from 'lucide-react';
 import Logo from '../UI/Logo';
 
+import { getTrafficWebSocket, getMemoryWebSocket } from '../../api/clash';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useState, useEffect } from 'react';
+
+const formatSpeed = (speed) => {
+    if (speed < 1024) return `${speed} B/s`;
+    if (speed < 1024 * 1024) return `${(speed / 1024).toFixed(2)} KB/s`;
+    return `${(speed / 1024 / 1024).toFixed(2)} MB/s`;
+};
+
+const formatMemory = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
 const Sidebar = () => {
     const navItems = [
         { path: '/', label: '首页', icon: LayoutDashboard },
@@ -14,9 +30,34 @@ const Sidebar = () => {
         { path: '/connections', label: '连接', icon: Link },
         { path: '/rules', label: '规则', icon: Ruler },
         { path: '/logs', label: '日志', icon: FileText },
-        { path: '/test', label: '测试', icon: PlayCircle }, // Added Testing
+        { path: '/test', label: '测试', icon: PlayCircle },
         { path: '/settings', label: '设置', icon: Settings },
     ];
+
+    const { secret } = useSettings();
+    const [traffic, setTraffic] = useState({ up: 0, down: 0 });
+    const [memory, setMemory] = useState(0);
+
+    useEffect(() => {
+        const wsTraffic = getTrafficWebSocket(secret);
+        wsTraffic.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            setTraffic(data);
+        };
+
+        const wsMemory = getMemoryWebSocket(secret);
+        wsMemory.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data && data.inuse) {
+                setMemory(data.inuse);
+            }
+        };
+
+        return () => {
+            wsTraffic.close();
+            wsMemory.close();
+        };
+    }, [secret]);
 
     return (
         <aside className="w-[240px] h-full bg-card border-r border-border flex flex-col shrink-0 font-sans z-50">
@@ -63,18 +104,18 @@ const Sidebar = () => {
                 <div className="space-y-2 mb-3">
                     <div className="flex justify-between items-center text-xs font-mono">
                         <span className="text-text-2 flex items-center gap-1.5 opacity-80">
-                            <ArrowUp size={12} /> 0.00 <span className="text-[10px] scale-90">B/s</span>
+                            <ArrowUp size={12} /> {formatSpeed(traffic.up)}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-mono">
                         <span className="text-text-2 flex items-center gap-1.5 opacity-80">
-                            <ArrowDown size={12} /> 0.00 <span className="text-[10px] scale-90">B/s</span>
+                            <ArrowDown size={12} /> {formatSpeed(traffic.down)}
                         </span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono text-text-2 opacity-80">
                     <Construction size={12} />
-                    <span>48.6 MB</span>
+                    <span>{formatMemory(memory)}</span>
                 </div>
             </div>
         </aside>

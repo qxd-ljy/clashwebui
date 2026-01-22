@@ -89,7 +89,15 @@ const Dashboard = () => {
     const [proxies, setProxies] = useState({});
     const [currentNode, setCurrentNode] = useState(null);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [selectedGroup, setSelectedGroup] = useState(localStorage.getItem('dashboard_selected_group') || null);
+
+    // Persist selectedGroup
+    useEffect(() => {
+        if (selectedGroup) {
+            localStorage.setItem('dashboard_selected_group', selectedGroup);
+        }
+    }, [selectedGroup]);
+
     const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
     const [isNodeMenuOpen, setIsNodeMenuOpen] = useState(false);
     const [activeTab] = useState('tun');
@@ -215,15 +223,18 @@ const Dashboard = () => {
             if (currentMode === 'global') {
                 targetGroup = 'GLOBAL';
             } else {
-                if (!targetGroup || targetGroup === 'GLOBAL') {
+                if (!targetGroup || targetGroup === 'GLOBAL' || !allProxies[targetGroup]) {
                     // Heuristic: Find the first Selector group in the original configuration order (excluding GLOBAL)
                     const selectors = Object.values(allProxies).filter(p => p.type === 'Selector' && p.name !== 'GLOBAL');
-                    // No sort() here - keep the original order from the API
 
                     if (selectors.length > 0) {
-                        targetGroup = selectors[0].name;
-                        // Drill down: If the top selector points to another group (e.g. Proxy Select -> Lowest Latency),
-                        // show that inner group instead, so the user sees the specific strategy.
+                        // Priority List for Group Names
+                        const priorityNames = ['Proxy', 'Proxies', '节点选择', '代理', 'Select', 'Default'];
+                        const bestMatch = selectors.find(s => priorityNames.some(p => s.name.toLowerCase().includes(p.toLowerCase())));
+
+                        targetGroup = bestMatch ? bestMatch.name : selectors[0].name;
+
+                        // Drill down logic...
                         if (targetGroup && allProxies[targetGroup]) {
                             const nextNodeName = allProxies[targetGroup].now;
                             const nextNode = allProxies[nextNodeName];
@@ -559,9 +570,22 @@ const Dashboard = () => {
                     <Card className="col-span-6 h-auto">
                         <SectionTitle icon={Settings} title="网络设置" />
 
+                        {/* System Proxy */}
+                        <div className="flex items-center justify-between pl-1 pr-2 mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-text-2">
+                                    <Globe size={16} />
+                                </div>
+                                <span className="text-[14px] font-medium text-text">系统代理</span>
+                            </div>
+                            <Switch
+                                checked={systemProxy}
+                                onChange={() => updateSystemProxy(!systemProxy)}
+                            />
+                        </div>
 
-
-                        <div className="bg-white border border-primary text-center py-2.5 rounded-lg mb-5 text-xs text-text-2">
+                        {/* TUN Mode */}
+                        <div className="bg-white border border-primary text-center py-2.5 rounded-lg mb-4 text-xs text-text-2">
                             {tunMode ? "TUN 模式已开启，接管系统流量" : "TUN 模式已关闭，适用于特殊应用"}
                             <span className="inline-block ml-1 border rounded-full w-3.5 h-3.5 text-[10px] leading-3 text-center cursor-help">?</span>
                         </div>
@@ -833,7 +857,7 @@ const Dashboard = () => {
                             <div className="h-px w-full bg-border/40"></div>
                             <div className="flex justify-between items-center text-[13px]">
                                 <span className="text-text-2">混合代理端口</span>
-                                <span className="text-text font-bold">-</span>
+                                <span className="font-mono text-text font-bold">{clashInfo.mixedPort}</span>
                             </div>
                             <div className="h-px w-full bg-border/40"></div>
                             <div className="flex justify-between items-center text-[13px]">
@@ -886,7 +910,7 @@ const Dashboard = () => {
                             </div>
                             <div className="h-px w-full bg-border/40"></div>
                             <div className="flex justify-between items-center text-[13px]">
-                                <span className="text-text-2">Verge 版本</span>
+                                <span className="text-text-2">WebUI 版本</span>
                                 <span className="font-bold text-text">{sysInfo.vergeVersion}</span>
                             </div>
                         </div>

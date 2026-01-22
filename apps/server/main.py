@@ -78,6 +78,12 @@ class Preferences(BaseModel):
     system_proxy: Optional[bool] = False
     tun_mode: Optional[bool] = False
     backend_port: Optional[int] = 3001
+    
+    # 自定义路径
+    clash_binary_path: Optional[str] = "~/.bin/clash"
+    clash_config_dir: Optional[str] = "~/.config/clash"
+    python_interpreter_path: Optional[str] = None  # None = auto-detect
+    webui_working_directory: Optional[str] = None  # None = current directory
 
 class ProfilesIndex(BaseModel):
     profiles: List[Profile]
@@ -115,11 +121,7 @@ async def update_preferences(prefs: Dict[str, Any]):
                     config = yaml.safe_load(f)
                 
                 # Merge logic
-                config["port"] = index.preferences.mixed_port
-                config["external-controller"] = index.preferences.external_controller
-                config["secret"] = index.preferences.secret
-                if "tun" not in config: config["tun"] = {}
-                config["tun"]["enable"] = index.preferences.tun_mode
+                config = inject_config_overrides(config, index.preferences)
                 
                 with open(CONFIG_PATH, "w", encoding="utf-8") as f:
                     yaml.safe_dump(config, f)
@@ -155,22 +157,209 @@ async def get_proxy_geoip():
 @app.get("/system_info")
 async def get_system_info():
     import platform
+
     return {
         "os": f"{platform.system()} {platform.release()}",
         "uptime": int(time.time() - start_time),
-        "verge_version": "v2.4.4",
+        "verge_version": "v3.0.0 (WebUI)",
         "last_check": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()),
-        "mode": "Service Mode",
-        "auto_start": False
+        "mode": "Service Mode"
     }
 
+
+
+class AutoStartRequest(BaseModel):
+    enable: bool
+
+@app.post("/auto_start")
+async def set_auto_start(req: AutoStartRequest):
+    """
+    启用/禁用 systemd user service 实现开机自启
+    包括 ClashWebUI (前后端) 和 Clash Core
+    """
+    user_systemd_dir = os.path.expanduser("~/.config/systemd/user")
+    web_service_path = os.path.join(user_systemd_dir, "clashwebui.service")
+    core_service_path = os.path.join(user_systemd_dir, "clash.service")
+    
+    # 获取配置
+    index = load_index()
+    prefs = index.preferences
+    
+    # Clash 路径
+    clash_bin = os.path.expanduser(prefs.clash_binary_path or "~/.bin/clash")
+    clash_config_dir = os.path.expanduser(prefs.clash_config_dir or "~/.config/clash")
+    
+    # Python 和 WebUI 路径
+    import sys
+    python_exec = prefs.python_interpreter_path if prefs and prefs.python_interpreter_path else sys.executable
+    webui_workdir = prefs.webui_working_directory if prefs and prefs.webui_working_directory else os.getcwd()
+    
+    if req.enable:
+        try:
+            if not os.path.exists(user_systemd_dir):
+                os.makedirs(user_systemd_dir, exist_ok=True)
+            
+            # 1. Clash Core Service
+            core_content = f"""[Unit]
+Description=Clash Core Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={clash_bin} -d {clash_config_dir}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+"""
+            with open(core_service_path, "w") as f:
+                f.write(core_content)
+            
+            # 2. WebUI Service
+            web_content = f"""[Unit]
+Description=ClashWebUI Backend Service
+After=network.target clash.service
+
+[Service]
+Type=simple
+WorkingDirectory={webui_workdir}
+ExecStart={python_exec} -m uvicorn main:app --host 0.0.0.0 --port 3001
+Restart=always
+RestartSec=5
+Environment=PATH={os.path.dirname(python_exec)}:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
+"""
+            with open(web_service_path, "w") as f:
+                f.write(web_content)
+            
+            # 3. Enable & Start
+            os.system("systemctl --user daemon-reload")
+            os.system("systemctl --user enable clash.service")
+            os.system("systemctl --user enable clashwebui.service")
+            # 不自动启动,避免中断当前会话
+            
+            # 4. Enable lingering
+            user = os.environ.get("USER")
+            if user:
+                os.system(f"loginctl enable-linger {user}")
+            
+            return {"success": True, "enabled": True}
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to enable auto-start: {str(e)}")
+    else:
+        # Disable
+        try:
+            os.system("systemctl --user stop clashwebui.service")
+            os.system("systemctl --user stop clash.service")
+            os.system("systemctl --user disable clashwebui.service")
+            os.system("systemctl --user disable clash.service")
+            
+            if os.path.exists(web_service_path):
+                os.remove(web_service_path)
+            if os.path.exists(core_service_path):
+                os.remove(core_service_path)
+            
+            os.system("systemctl --user daemon-reload")
+            
+            return {"success": True, "enabled": False}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to disable auto-start: {str(e)}")
+
+@app.get("/auto_start/status")
+async def get_auto_start_status():
+    """获取自启状态"""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "is-enabled", "clashwebui.service"],
+            capture_output=True,
+            text=True
+        )
+        enabled = (result.returncode == 0)
+        return {"enabled": enabled}
+    except:
+        return {"enabled": False}
 # Helpers
+def inject_config_overrides(config: dict, prefs: Preferences):
+    """
+    Centralized logic to inject global preferences into Clash config.
+    Handles TUN mode (gVisor, DNS-Hijack, Fake-IP) and other globals.
+    """
+    config["port"] = prefs.mixed_port
+    config["external-controller"] = prefs.external_controller
+    config["secret"] = prefs.secret
+    
+    # Enhanced TUN Configuration
+    if prefs.tun_mode:
+        config["tun"] = {
+            "enable": True,
+            "stack": "gVisor", # Recommended for compatibility
+            "dns-hijack": ["any:53"],
+            "auto-route": True,
+            "auto-detect-interface": True
+        }
+        # TUN mode usually requires DNS server to be enabled
+        if "dns" not in config:
+            config["dns"] = {}
+        config["dns"]["enable"] = True
+        config["dns"]["enhanced-mode"] = "fake-ip"
+        if not config["dns"].get("nameserver"):
+             config["dns"]["nameserver"] = ["114.114.114.114", "8.8.8.8"]
+    else:
+        if "tun" in config:
+            config["tun"]["enable"] = False
+            
+    return config
+
 def set_system_proxy(enable: bool, port: int = 7890):
     """
-    System Proxy is managed manually or via TUN mode in Server environments.
-    This function currently does nothing to avoid conflicting with Server OS networking.
+    控制 Clash 进程来实现系统代理的启用/禁用
+    启用 = 启动 Clash
+    禁用 = 停止 Clash
     """
-    print(f"[Info] System Proxy preference set to: {enable} (OS configuration skipped for Server/Docker compatibility)")
+    print(f"[Info] System Proxy: {enable} - Controlling Clash process")
+    
+    try:
+        import subprocess
+        
+        # 从 preferences 获取自定义路径
+        index = load_index()
+        if index.preferences:
+            clash_bin = os.path.expanduser(index.preferences.clash_binary_path or "~/.bin/clash")
+            clash_config_dir = os.path.expanduser(index.preferences.clash_config_dir or "~/.config/clash")
+        else:
+            clash_bin = os.path.expanduser("~/.bin/clash")
+            clash_config_dir = os.path.expanduser("~/.config/clash")
+            
+        clash_log = os.path.expanduser("~/clash.log")
+        
+        if enable:
+            # 启用系统代理 = 启动 Clash
+            # 1. 先停止已存在的实例
+            subprocess.run(["pkill", "clash"], capture_output=True)
+            time.sleep(0.5)  # 等待进程完全停止
+            
+            # 2. 启动新实例
+            cmd = f"nohup {clash_bin} -d {clash_config_dir} > {clash_log} 2>&1 &"
+            subprocess.Popen(cmd, shell=True, 
+                           stdout=subprocess.DEVNULL, 
+                           stderr=subprocess.DEVNULL,
+                           start_new_session=True)
+            print(f"[Info] Clash started: {clash_bin} -d {clash_config_dir}")
+        else:
+            # 禁用系统代理 = 停止 Clash
+            result = subprocess.run(["pkill", "clash"], capture_output=True)
+            if result.returncode == 0:
+                print("[Info] Clash stopped")
+            else:
+                print("[Info] Clash was not running")
+                
+    except Exception as e:
+        print(f"Failed to control Clash process: {e}")
 
 
 def load_index() -> ProfilesIndex:
@@ -591,28 +780,7 @@ async def select_profile(profile_id: str):
     
     # Apply Global Preferences
     if index.preferences:
-        profile_config["port"] = index.preferences.mixed_port
-        profile_config["external-controller"] = index.preferences.external_controller
-        profile_config["secret"] = index.preferences.secret
-        
-        # Enhanced TUN Configuration
-        if index.preferences.tun_mode:
-            profile_config["tun"] = {
-                "enable": True,
-                "stack": "gVisor", # Recommended for compatibility
-                "dns-hijack": ["any:53"],
-                "auto-route": True,
-                "auto-detect-interface": True
-            }
-            # TUN mode usually requires DNS server to be enabled
-            if "dns" not in profile_config:
-                profile_config["dns"] = {}
-            profile_config["dns"]["enable"] = True
-            profile_config["dns"]["enhanced-mode"] = "fake-ip"
-            profile_config["dns"]["nameserver"] = ["114.114.114.114", "8.8.8.8"]
-        else:
-            if "tun" in profile_config:
-                profile_config["tun"]["enable"] = False
+        profile_config = inject_config_overrides(profile_config, index.preferences)
         
         # Also apply system proxy if enabled
         set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
@@ -785,6 +953,64 @@ async def websocket_memory(websocket: WebSocket):
     except Exception as e:
         print(f"Memory WS error: {e}")
 
+
+# --- IP Info Proxy ---
+@app.get("/proxy_geoip")
+async def proxy_geoip():
+    # 1. Try to use the local proxy (Clash) to fetch IP info
+    # This serves two purposes:
+    #   a) Gets the actual exit IP of the proxy
+    #   b) Verifies the proxy connectivity
+    
+    # Defaults
+    proxies = {}
+    
+    # Determine proxy address from config
+    try:
+        index = load_index()
+        port = 7890 # Default mixed port
+        if index.preferences and index.preferences.mixed_port:
+             port = index.preferences.mixed_port
+        else:
+             # Fallback to reading config.yaml if preferences not set
+             if os.path.exists(CONFIG_PATH):
+                 with open(CONFIG_PATH, 'r') as f:
+                     config = yaml.safe_load(f)
+                     port = config.get('mixed-port', config.get('port', 7890))
+        
+        proxy_url = f"http://127.0.0.1:{port}"
+        proxies = {
+            "http://": proxy_url,
+            "https://": proxy_url
+        }
+    except:
+        pass # Fallback to direct if determining proxy fails
+
+    # 2. Fetch from ipapi.co (or similar)
+    # We use httpx with proxy
+    async with httpx.AsyncClient(proxies=proxies, timeout=10.0) as client:
+        try:
+             # ipapi.co is good but rate limited. ip-api.com is http only but fast.
+             # let's try ipapi.co first for rich data
+            resp = await client.get("https://ipapi.co/json/")
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            print(f"IP Fetch with proxy failed: {e}")
+            # Fallback: Try Direct
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as direct_client:
+                    resp = await direct_client.get("https://ipapi.co/json/")
+                    return resp.json()
+            except Exception as e2:
+                # Last resort stub
+                return {
+                    "ip": "Error",
+                    "city": "Unknown", 
+                    "region": "Unknown",
+                    "country": "Unknown",
+                    "org": str(e)
+                }
 
 # --- Docker / Production Support ---
 # 1. Rename the core application to backend_app
