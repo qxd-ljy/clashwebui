@@ -92,7 +92,7 @@ const Dashboard = () => {
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
     const [isNodeMenuOpen, setIsNodeMenuOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('system');
+    const [activeTab] = useState('tun');
     const [memory, setMemory] = useState(0);
     const [connections, setConnections] = useState({ uploadTotal: 0, downloadTotal: 0, connections: [] });
     const [siteDelays, setSiteDelays] = useState({
@@ -561,64 +561,23 @@ const Dashboard = () => {
 
 
 
-                        {/* Segmented Control */}
-                        <div className="bg-muted p-1 rounded-[14px] flex mb-4">
-                            <button
-                                onClick={() => setActiveTab('system')}
-                                className={`flex-1 py-1.5 text-[13px] font-medium rounded-[12px] transition-all flex items-center justify-center gap-2 ${activeTab === 'system' ? 'bg-primary text-white shadow-sm' : 'text-text-2 hover:text-text'}`}>
-                                <Monitor size={16} />
-                                系统代理
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('tun')}
-                                className={`flex-1 py-1.5 text-[13px] font-medium rounded-[12px] transition-all flex items-center justify-center gap-2 ${activeTab === 'tun' ? 'bg-primary text-white shadow-sm' : 'text-text-2 hover:text-text'}`}>
-                                <Activity size={16} />
-                                虚拟网卡模式
-                            </button>
+                        <div className="bg-white border border-primary text-center py-2.5 rounded-lg mb-5 text-xs text-text-2">
+                            {tunMode ? "TUN 模式已开启，接管系统流量" : "TUN 模式已关闭，适用于特殊应用"}
+                            <span className="inline-block ml-1 border rounded-full w-3.5 h-3.5 text-[10px] leading-3 text-center cursor-help">?</span>
                         </div>
-
-                        {/* Hint Box & Toggle */}
-                        {activeTab === 'system' ? (
-                            <>
-                                <div className="bg-white border border-primary text-center py-2.5 rounded-lg mb-5 text-xs text-text-2 relative">
-                                    {systemProxy ? "系统代理已开启，自动接管流量" : "系统代理已关闭，建议大多数用户打开此选项"}
-                                    <span className="inline-block ml-1 border rounded-full w-3.5 h-3.5 text-[10px] leading-3 text-center cursor-help">?</span>
+                        <div className="flex items-center justify-between pl-1 pr-2">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-text-2">
+                                    <Shield size={16} />
                                 </div>
-                                <div className="flex items-center justify-between pl-1 pr-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-text-2">
-                                            <Power size={16} />
-                                        </div>
-                                        <span className="text-[14px] font-medium text-text">系统代理</span>
-                                        <Settings size={14} className="text-text-2 cursor-pointer hover:text-primary" onClick={() => navigate('/settings')} />
-                                    </div>
-                                    <Switch
-                                        checked={systemProxy}
-                                        onChange={() => updateSystemProxy(!systemProxy)}
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="bg-white border border-primary text-center py-2.5 rounded-lg mb-5 text-xs text-text-2">
-                                    {tunMode ? "TUN 模式已开启，接管系统流量" : "TUN 模式已关闭，适用于特殊应用"}
-                                    <span className="inline-block ml-1 border rounded-full w-3.5 h-3.5 text-[10px] leading-3 text-center cursor-help">?</span>
-                                </div>
-                                <div className="flex items-center justify-between pl-1 pr-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-text-2">
-                                            <Shield size={16} />
-                                        </div>
-                                        <span className="text-[14px] font-medium text-text">虚拟网卡模式</span>
-                                        <Settings size={14} className="text-text-2 cursor-pointer hover:text-primary" onClick={() => navigate('/settings')} />
-                                    </div>
-                                    <Switch
-                                        checked={tunMode}
-                                        onChange={() => updateTunMode(!tunMode)}
-                                    />
-                                </div>
-                            </>
-                        )}
+                                <span className="text-[14px] font-medium text-text">虚拟网卡模式 (TUN)</span>
+                                <Settings size={14} className="text-text-2 cursor-pointer hover:text-primary" onClick={() => navigate('/settings')} />
+                            </div>
+                            <Switch
+                                checked={tunMode}
+                                onChange={() => updateTunMode(!tunMode)}
+                            />
+                        </div>
                     </Card>
 
                     {/* 4. Proxy Mode */}

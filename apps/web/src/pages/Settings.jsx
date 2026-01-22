@@ -96,9 +96,7 @@ const Settings = () => {
                             <h2 className="text-base font-bold text-slate-800">系统控制</h2>
                         </div>
                         <div className="p-4 space-y-1">
-                            <SettingItem icon={Power} label="系统代理" description="自动接管系统 HTTP/HTTPS 流量">
-                                <Switch checked={systemProxy} onChange={() => toggle('systemProxy')} noTransition={loading} />
-                            </SettingItem>
+                            {/* System Proxy Removed */}
                             <SettingItem icon={Zap} label="开机自启" description="随系统启动 ClashWebUI">
                                 <Switch checked={false} onChange={() => { }} noTransition={loading} />
                             </SettingItem>
