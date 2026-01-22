@@ -2,7 +2,9 @@
 
 <div align="center">
 
-![ClashWebUI](https://github.com/user-attachments/assets/placeholder.png)
+<img src="docs/logo.svg" width="100" height="100" alt="ClashWebUI Logo" />
+
+![ClashWebUI](docs/screenshot.png)
 
 **ClashWebUI: 现代化 Clash 网页控制台**
 

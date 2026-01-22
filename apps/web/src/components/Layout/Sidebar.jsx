@@ -2,8 +2,9 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Globe, FileJson, Link, Ruler,
-    FileText, Settings, Zap, ArrowUp, ArrowDown, Construction, PlayCircle
+    FileText, Settings, ArrowUp, ArrowDown, Construction, PlayCircle
 } from 'lucide-react';
+import Logo from '../UI/Logo';
 
 const Sidebar = () => {
     const navItems = [
@@ -23,10 +24,9 @@ const Sidebar = () => {
             <div className="h-[72px] flex items-center px-6 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="text-text">
-                        {/* Simple Logo Placeholder that matches the Cat/Logo vibe conceptually */}
-                        <Zap fill="currentColor" size={28} />
+                        <Logo size={32} />
                     </div>
-                    <span className="text-xl font-bold text-text tracking-tight">Clash Verge</span>
+                    <span className="text-xl font-bold text-text tracking-tight">ClashWebUI</span>
                 </div>
             </div>
 

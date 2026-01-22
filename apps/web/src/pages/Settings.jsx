@@ -99,7 +99,7 @@ const Settings = () => {
                             <SettingItem icon={Power} label="系统代理" description="自动接管系统 HTTP/HTTPS 流量">
                                 <Switch checked={systemProxy} onChange={() => toggle('systemProxy')} noTransition={loading} />
                             </SettingItem>
-                            <SettingItem icon={Zap} label="开机自启" description="随系统启动 Clash Verge Rev">
+                            <SettingItem icon={Zap} label="开机自启" description="随系统启动 ClashWebUI">
                                 <Switch checked={false} onChange={() => { }} noTransition={loading} />
                             </SettingItem>
                         </div>
