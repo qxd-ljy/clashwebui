@@ -13,6 +13,8 @@ import asyncio
 from typing import Optional, List, Dict, Any
 import psutil
 from fastapi import WebSocket, WebSocketDisconnect
+from starlette.requests import Request
+from starlette.responses import Response
 
 app = FastAPI()
 start_time = time.time()
@@ -791,6 +793,96 @@ async def websocket_memory(websocket: WebSocket):
         pass
     except Exception as e:
         print(f"Memory WS error: {e}")
+
+
+# --- Docker / Production Support ---
+# 1. Rename the core application to backend_app
+backend_app = app
+
+# 2. Create a new Root App
+app = FastAPI()
+
+# 3. Mount the Backend
+app.mount("/backend", backend_app)
+
+# 4. Implement /api Proxy (Clash External Controller)
+@app.api_route("/api/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+async def proxy_clash_api(path_name: str, request: Request):
+    # Get configured controller address
+    index = load_index()
+    controller = "127.0.0.1:9092"
+    secret = ""
+    if index.preferences:
+        controller = index.preferences.external_controller or controller
+        secret = index.preferences.secret or secret
+    
+    # Ensure protocol
+    if not controller.startswith("http"):
+        controller = f"http://{controller}"
+        
+    target_url = f"{controller}/{path_name}"
+    
+    # Forward headers (excluding host)
+    headers = dict(request.headers)
+    headers.pop("host", None)
+    headers.pop("content-length", None)
+    if secret:
+        headers["Authorization"] = f"Bearer {secret}"
+
+    async with httpx.AsyncClient() as client:
+        try:
+            content = await request.body()
+            proxy_req = client.build_request(
+                request.method,
+                target_url,
+                headers=headers,
+                content=content,
+                params=request.query_params
+            )
+            proxy_res = await client.send(proxy_req)
+            
+            return Response(
+                content=proxy_res.content,
+                status_code=proxy_res.status_code,
+                headers=dict(proxy_res.headers)
+            )
+        except Exception as e:
+            return Response(content=f"Clash Proxy Error: {str(e)}", status_code=502)
+
+# 5. Serve Static Files (SPA)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Only mount if the directory exists (Production mode)
+# In Docker, we will copy dist to /app/static_dist. 
+# But let's support local too: ../../dist? 
+# Let's standardize on a path relative to main.py or env var.
+# Let's assume Dockerfile copies to `static/`.
+STATIC_DIR = os.path.join(os.getcwd(), "static")
+
+if os.path.exists(STATIC_DIR):
+    print(f"Serving static files from {STATIC_DIR}")
+    # Mount assets
+    if os.path.exists(os.path.join(STATIC_DIR, "assets")):
+        app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
+    
+    # Favicon
+    @app.get("/logo.svg")
+    async def serve_logo():
+         return FileResponse(os.path.join(STATIC_DIR, "logo.svg"))
+
+    # Catch-all for SPA
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # API/Backend handled by mounts above.
+        # Check if file exists (e.g. docs/logo.svg via direct path?)
+        # For now, just serve index for everything else
+        index_path = os.path.join(STATIC_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return "Frontend build not found", 404
+else:
+    print(f"Warning: Static directory {STATIC_DIR} not found. Running in API-only mode.")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3001)

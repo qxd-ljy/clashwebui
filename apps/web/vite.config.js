@@ -34,7 +34,7 @@ export default defineConfig({
       '/backend': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/backend/, ''),
+        // rewrite: (path) => path.replace(/^\/backend/, ''), // Backend now serves at /backend
       },
     },
   },
