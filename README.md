@@ -4,11 +4,13 @@
 
 <img src="docs/logo.svg" width="100" height="100" alt="ClashWebUI Logo" />
 
+![ClashWebUI](docs/screenshot.png)
+
 **ClashWebUI: 现代化 Clash 网页控制台**
 
 基于 **React 18** + **FastAPI** 构建，提供与原版客户端一致的 "Premium" 级视觉体验与交互逻辑。
 
-[特性](#-特性) • [安装](#-快速开始) • [架构](#-架构设计) • [API 文档](#-后端-api) • [截图](#-应用截图)
+[特性](#-特性) • [安装](#-快速开始) • [Docker 部署](#-docker-部署) • [架构](#-架构设计) • [API 文档](#-后端-api) • [截图](#-应用截图)
 
 </div>
 
@@ -28,10 +30,14 @@
 
 ```mermaid
 graph TD
-    User["用户浏览器"] <-->|HTTP/WebSocket| Web["React 前端 (Vite)"]
-    Web <-->|REST API| Server["FastAPI 后端 (Python)"]
-    Server <-->|Ext Controller| Kernel["Clash 内核 (Mihomo)"]
-    Server -->|Read/Write| Config["配置文件 (~/.config/clash)"]
+    User["用户浏览器"] <--> |HTTP/WebSocket| Docker["Docker Container (ClashWebUI)"]
+    subgraph Docker
+        Web["静态资源 (/docs, /assets)"]
+        Server["FastAPI 后端"]
+    end
+    Web <--> |Internal| Server
+    Server <--> |REST API| Kernel["Clash 内核 (Mihomo)"]
+    Server --> |Read/Write| Config["配置文件 (~/.config/clash)"]
 ```
 
 ### 目录结构
@@ -42,16 +48,35 @@ clashwebui/
 │   │   ├── main.py      # 应用入口与 API 定义
 │   │   └── requirements.txt
 │   └── web/             # ⚛️ React 前端 (Vite)
-│       ├── src/
-│       │   ├── pages/   # 路由页面 (Dashboard, Proxies...)
-│       │   ├── api/     # API 客户端封装
-│       │   └── ...
-│       └── package.json
+│       └── ...
+├── docs/                # 📄 文档与静态资源 (Logo, Screenshots)
+├── Dockerfile           # 🐳 Docker 构建多阶段配置
 ├── requirements.txt     # 后端依赖清单
-└── README.md
+└── .github/workflows/   # 🤖 CI/CD 自动构建流程
 ```
 
-## 🚀 快速开始
+## 🐳 Docker 部署
+
+本项目支持 Docker 一键部署，镜像自动推送到 Docker Hub。
+
+### 1. 启动容器
+
+```bash
+docker run -d \
+  --name clashwebui \
+  --restart always \
+  --network host \
+  -v ~/.config/clash:/root/.config/clash \
+  qxdljy/clashwebui:latest
+```
+
+*注意：建议使用 `--network host` 模式，以确保容器能直接访问宿主机的 Clash 外部控制端口 (通常是 127.0.0.1:9090)。*
+
+### 2. CI/CD 自动构建
+
+本项目包含 GitHub Actions 工作流 (`.github/workflows/docker-image.yml`)，当代码推送到 `master` 分支或发布 `v*` 标签时，会自动构建 Docker 镜像并推送到 `qxdljy/clashwebui`。
+
+## 🚀 快速开始 (本地开发)
 
 ### 环境依赖
 - **Node.js**: v18+
@@ -79,12 +104,13 @@ npm install
 ```bash
 # 在项目根目录下
 python apps/server/main.py
-# 服务地址: http://localhost:3001
+# 服务地址: http://localhost:3001 (包含前端静态资源代理)
 ```
 
-**终端 B: 前端开发服**
+**终端 B: 前端开发服 (可选)**
 ```bash
-# 在 apps/web 目录下
+# 如需调试前端代码
+cd apps/web
 npm run dev
 # 访问地址: http://localhost:5173
 ```
