@@ -22,7 +22,8 @@ start_time = time.time()
 # Configuration Paths
 # Configuration Paths
 # Explicitly set to user request path to avoid ambiguity
-CONFIG_DIR = "/home/image/.config/clash"
+# Explicitly set to user request path to avoid ambiguity
+CONFIG_DIR = os.getenv("CLASH_CONFIG_DIR", os.path.expanduser("~/.config/clash"))
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.yaml")
 PROFILES_DIR = os.path.join(CONFIG_DIR, "profiles")
 PROFILES_INDEX = os.path.join(CONFIG_DIR, "profiles.json")
