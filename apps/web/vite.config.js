@@ -14,9 +14,9 @@ export default defineConfig({
   server: {
     host: true, // Listen on all addresses (0.0.0.0)
     strictPort: true,
-    port: 5010,
+    port: parseInt(process.env.PORT) || 5173, // 从环境变量读取端口，默认 5173
     hmr: {
-      clientPort: 5010, // Force client to connect to the same port
+      clientPort: parseInt(process.env.PORT) || 5173, // Force client to connect to the same port
     },
     proxy: {
       // Backend API (ClashWebUI后端)
@@ -25,12 +25,11 @@ export default defineConfig({
         changeOrigin: true,
         ws: false,
       },
-      // Clash External Controller API  
+      // Clash External Controller API (通过后端代理以添加认证)
       '/api': {
-        target: 'http://127.0.0.1:9092',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         ws: true, // Enable WebSocket proxy
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

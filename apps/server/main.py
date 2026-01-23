@@ -218,6 +218,7 @@ WantedBy=default.target
                 f.write(core_content)
             
             # 2. WebUI Service
+            backend_port = prefs.backend_port if prefs else 3001
             web_content = f"""[Unit]
 Description=ClashWebUI Backend Service
 After=network.target clash.service
@@ -225,10 +226,11 @@ After=network.target clash.service
 [Service]
 Type=simple
 WorkingDirectory={webui_workdir}
-ExecStart={python_exec} -m uvicorn main:app --host 0.0.0.0 --port 3001
+ExecStart={python_exec} -m uvicorn main:app --host 0.0.0.0 --port {backend_port}
 Restart=always
 RestartSec=5
 Environment=PATH={os.path.dirname(python_exec)}:/usr/bin:/bin
+Environment=WEBUI_PORT={backend_port}
 
 [Install]
 WantedBy=default.target
@@ -676,10 +678,10 @@ async def import_profile(data: ProfileImport):
     )
     
     index.profiles.append(new_profile)
-    index.profiles.append(new_profile)
     
-    # If this is the selected profile (e.g. the first one), apply it immediately
-    if not index.selected or index.selected == profile_id:
+    # 如果是第一个配置文件，自动应用它
+    first_profile = len(index.profiles) == 1
+    if first_profile:
         index.selected = profile_id
         
         # Apply Logic (Duplicate of select_profile logic, consider refactoring if complex)
@@ -1107,33 +1109,7 @@ from fastapi.responses import FileResponse
 # But let's support local too: ../../dist? 
 # Let's standardize on a path relative to main.py or env var.
 # Let's assume Dockerfile copies to `static/`.
-# Check multiple possible locations for static files
-# Use absolute paths for reliability
-base_dir = os.getcwd()
-file_dir = os.path.dirname(os.path.abspath(__file__))
-
-possible_paths = [
-    os.path.join(base_dir, "static"),                     # Docker/Deployment (root/static)
-    os.path.abspath(os.path.join(file_dir, "../web/dist")), # Monorepo Native (relative to main.py)
-    os.path.abspath(os.path.join(file_dir, "../../web/dist")), # Fallback: apps/server -> ../../web ?? No, ../web is correct if siblings.
-    os.path.join(base_dir, "apps/web/dist"),              # Monorepo CWD (root/apps/web/dist) - Most likely for start.sh
-    os.path.join(base_dir, "dist"),                       # Local Build (root/dist)
-]
-
-print(f"Searching for static files in:")
-STATIC_DIR = None
-for path in possible_paths:
-    exists = os.path.exists(path)
-    # print(f"  - {path} [{'FOUND' if exists else 'MISSING'}]") # Uncomment for deep debug
-    if exists and os.path.exists(os.path.join(path, 'index.html')):
-        STATIC_DIR = path
-        print(f"  -> Found frontend build at: {STATIC_DIR}")
-        break
-
-if not STATIC_DIR:
-    # Use the first path as default for error message, but print warning
-    STATIC_DIR = os.path.join(base_dir, "static")
-    print(f"Warning: Could not find 'index.html' in any known static locations. Checked: {[p for p in possible_paths]}")
+STATIC_DIR = os.path.join(os.getcwd(), "static")
 
 if os.path.exists(STATIC_DIR):
     print(f"Serving static files from {STATIC_DIR}")
