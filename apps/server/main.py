@@ -289,7 +289,9 @@ def inject_config_overrides(config: dict, prefs: Preferences):
     Centralized logic to inject global preferences into Clash config.
     Handles TUN mode (gVisor, DNS-Hijack, Fake-IP) and other globals.
     """
-    config["port"] = prefs.mixed_port
+    config["mixed-port"] = prefs.mixed_port
+    config.pop("port", None)
+    config.pop("socks-port", None)
     config["external-controller"] = prefs.external_controller
     config["secret"] = prefs.secret
     
@@ -781,12 +783,13 @@ async def select_profile(profile_id: str):
     # Apply Global Preferences
     if index.preferences:
         profile_config = inject_config_overrides(profile_config, index.preferences)
-        
-        # Also apply system proxy if enabled
-        set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
-
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.safe_dump(profile_config, f)
+    
+    # Reload Core or Restart if needed
+    # Apply Global Preferences (Restart Core if System Proxy is enabled/toggle logic)
+    if index.preferences:
+         set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
     
     # Update selected profile in index
     index.selected = profile_id
