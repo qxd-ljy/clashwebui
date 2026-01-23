@@ -47,63 +47,8 @@ clashwebui/
 │   └── web/             # ⚛️ React 前端 (Vite)
 │       └── ...
 ├── docs/                # 📄 文档与静态资源 (Logo, Screenshots)
-├── Dockerfile           # 🐳 Docker 构建多阶段配置
-├── requirements.txt     # 后端依赖清单
-└── .github/workflows/   # 🤖 CI/CD 自动构建流程
+└── requirements.txt     # 后端依赖清单
 ```
-
-## 🐳 Docker 部署
-
-本项目支持 Docker 一键部署，镜像自动推送到 Docker Hub。
-
-### 1. 启动容器
-
-#### Linux / macOS
-```bash
-docker run -d \
-  --name clashwebui \
-  --restart always \
-  --network host \
-  -v ~/.config/clash:/root/.config/clash \
-  -e "WEBUI_PORT=3001" \
-  -e "CLASH_MIXED_PORT=7890" \
-  -e "CLASH_EXTERNAL_CONTROLLER=127.0.0.1:9090" \
-  -e "CLASH_SECRET=your_secret" \
-  qxdljy/clashwebui:latest
-```
-
-#### Windows (PowerShell)
-```powershell
-docker run -d `
-  --name clashwebui `
-  --restart always `
-  -v $HOME/.config/clash:/root/.config/clash `
-  -e "WEBUI_PORT=3001" `
-  -e "CLASH_MIXED_PORT=7890" `
-  -e "CLASH_EXTERNAL_CONTROLLER=0.0.0.0:9092" `
-  -e "CLASH_SECRET=your_secret" `
-  qxdljy/clashwebui:latest
-```
-
-#### 环境变量配置
-
-支持通过 `-e` 设置以下环境变量来覆盖默认行为：
-
-| 变量名 | 默认值 | 说明 |
-| :--- | :--- | :--- |
-| `WEBUI_PORT` | `3001` | WebUI 后端监听端口 |
-| `CLASH_MIXED_PORT` | `7890` | 混合代理端口 (HTTP + SOCKS5) |
-| `CLASH_EXTERNAL_CONTROLLER` | `127.0.0.1:9092` | Clash 外部控制 API 地址 |
-| `CLASH_SECRET` | `""` | Clash 外部控制密钥 |
-
-*注意:*
-- **Linux**: 建议使用 `--network host`。
-- **Windows**: 由于不支持 host 网络，需映射端口 `3001`。
-- **内核连接**: 在 Windows 上，容器访问宿主机内核需使用 `host.docker.internal` (例如在设置中填写 `host.docker.internal:9090`)。
-
-### 2. CI/CD 自动构建
-
-本项目包含 GitHub Actions 工作流 (`.github/workflows/docker-image.yml`)，当代码推送到 `master` 分支或发布 `v*` 标签时，会自动构建 Docker 镜像并推送到 `qxdljy/clashwebui`。
 
 ## 🚀 快速开始 (本地开发)
 
