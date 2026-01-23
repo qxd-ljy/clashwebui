@@ -101,7 +101,7 @@ if ps -p $BACKEND_PID > /dev/null; then
     echo ""
     log_success "============================================"
     log_success "  ClashWebUI 已启动！"
-    log_success "  访问地址: http://localhost:3001"
+    log_success "  访问地址: http://localhost:3000"
     log_success "============================================"
     echo ""
     log_info "按 Ctrl+C 停止服务"
