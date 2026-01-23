@@ -1107,7 +1107,33 @@ from fastapi.responses import FileResponse
 # But let's support local too: ../../dist? 
 # Let's standardize on a path relative to main.py or env var.
 # Let's assume Dockerfile copies to `static/`.
-STATIC_DIR = os.path.join(os.getcwd(), "static")
+# Check multiple possible locations for static files
+# Use absolute paths for reliability
+base_dir = os.getcwd()
+file_dir = os.path.dirname(os.path.abspath(__file__))
+
+possible_paths = [
+    os.path.join(base_dir, "static"),                     # Docker/Deployment (root/static)
+    os.path.abspath(os.path.join(file_dir, "../web/dist")), # Monorepo Native (relative to main.py)
+    os.path.abspath(os.path.join(file_dir, "../../web/dist")), # Fallback: apps/server -> ../../web ?? No, ../web is correct if siblings.
+    os.path.join(base_dir, "apps/web/dist"),              # Monorepo CWD (root/apps/web/dist) - Most likely for start.sh
+    os.path.join(base_dir, "dist"),                       # Local Build (root/dist)
+]
+
+print(f"Searching for static files in:")
+STATIC_DIR = None
+for path in possible_paths:
+    exists = os.path.exists(path)
+    # print(f"  - {path} [{'FOUND' if exists else 'MISSING'}]") # Uncomment for deep debug
+    if exists and os.path.exists(os.path.join(path, 'index.html')):
+        STATIC_DIR = path
+        print(f"  -> Found frontend build at: {STATIC_DIR}")
+        break
+
+if not STATIC_DIR:
+    # Use the first path as default for error message, but print warning
+    STATIC_DIR = os.path.join(base_dir, "static")
+    print(f"Warning: Could not find 'index.html' in any known static locations. Checked: {[p for p in possible_paths]}")
 
 if os.path.exists(STATIC_DIR):
     print(f"Serving static files from {STATIC_DIR}")
