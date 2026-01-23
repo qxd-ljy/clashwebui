@@ -112,7 +112,7 @@ log_info "步骤 4/4: 启动前端开发服务器..."
 # 读取前端端口配置
 FRONTEND_PORT=5173
 # 读取后端端口配置 (供 Vite 代理使用)
-PORT_BACKEND=3001
+PORT_BACKEND=3000
 
 if [ -f "config.yaml" ]; then
     # 读取前端端口
