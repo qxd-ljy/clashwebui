@@ -676,9 +676,37 @@ async def import_profile(data: ProfileImport):
     )
     
     index.profiles.append(new_profile)
-    if not index.selected:
+    index.profiles.append(new_profile)
+    
+    # If this is the selected profile (e.g. the first one), apply it immediately
+    if not index.selected or index.selected == profile_id:
         index.selected = profile_id
         
+        # Apply Logic (Duplicate of select_profile logic, consider refactoring if complex)
+        # 1. Merge Prefs
+        try:
+             # Load YAML
+            import yaml
+            profile_config = yaml.safe_load(yaml_content)
+            
+            # Inject
+            if index.preferences:
+                profile_config = inject_config_overrides(profile_config, index.preferences)
+            
+            # Write global config
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                yaml.safe_dump(profile_config, f)
+                
+            # Reload Core (Async inside sync function? No, import_profile is async)
+            await reload_clash_config()
+            
+            # Set System Proxy if needed
+            if index.preferences:
+                 set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
+                 
+        except Exception as e:
+            print(f"Failed to auto-apply imported profile: {e}")
+
     save_index(index)
     return {"success": True, "profile": new_profile}
 
