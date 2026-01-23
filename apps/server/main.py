@@ -72,12 +72,12 @@ class ProfileUpdate(BaseModel):
     allow_unsafe: Optional[bool] = None
 
 class Preferences(BaseModel):
-    mixed_port: Optional[int] = 7890
-    external_controller: Optional[str] = "127.0.0.1:9092"
-    secret: Optional[str] = ""
+    mixed_port: Optional[int] = int(os.getenv("CLASH_MIXED_PORT", 7890))
+    external_controller: Optional[str] = os.getenv("CLASH_EXTERNAL_CONTROLLER", "127.0.0.1:9092")
+    secret: Optional[str] = os.getenv("CLASH_SECRET", "")
     system_proxy: Optional[bool] = False
     tun_mode: Optional[bool] = False
-    backend_port: Optional[int] = 3001
+    backend_port: Optional[int] = int(os.getenv("WEBUI_PORT", 3001))
     
     # 自定义路径
     clash_binary_path: Optional[str] = "~/.bin/clash"
@@ -1105,4 +1105,5 @@ else:
     print(f"Warning: Static directory {STATIC_DIR} not found. Running in API-only mode.")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=3001)
+    port = int(os.getenv("WEBUI_PORT", 3001))
+    uvicorn.run(app, host="0.0.0.0", port=port)

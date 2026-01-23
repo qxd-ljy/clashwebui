@@ -78,9 +78,22 @@ docker run -d `
   --restart always `
   -p 3001:3001 `
   -v $HOME/.config/clash:/root/.config/clash `
-  -e "DEFAULT_CONTROLLER=host.docker.internal:9090" `
+  -e "CLASH_EXTERNAL_CONTROLLER=host.docker.internal:9090" `
+  -e "CLASH_MIXED_PORT=7890" `
+  -e "CLASH_SECRET=your_secret" `
   qxdljy/clashwebui:latest
 ```
+
+#### 环境变量配置
+
+支持通过 `-e` 设置以下环境变量来覆盖默认行为：
+
+| 变量名 | 默认值 | 说明 |
+| :--- | :--- | :--- |
+| `WEBUI_PORT` | `3001` | WebUI 后端监听端口 |
+| `CLASH_MIXED_PORT` | `7890` | 混合代理端口 (HTTP + SOCKS5) |
+| `CLASH_EXTERNAL_CONTROLLER` | `127.0.0.1:9092` | Clash 外部控制 API 地址 |
+| `CLASH_SECRET` | `""` | Clash 外部控制密钥 |
 
 *注意:*
 - **Linux**: 建议使用 `--network host`。
