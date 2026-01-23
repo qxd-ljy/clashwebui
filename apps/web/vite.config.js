@@ -21,13 +21,13 @@ export default defineConfig({
     proxy: {
       // Backend API (ClashWebUI后端)
       '/backend': {
-        target: 'http://127.0.0.1:3001',
+        target: `http://127.0.0.1:${process.env.BACKEND_PORT || 3001}`,
         changeOrigin: true,
         ws: false,
       },
       // Clash External Controller API (通过后端代理以添加认证)
       '/api': {
-        target: 'http://127.0.0.1:3001',
+        target: `http://127.0.0.1:${process.env.BACKEND_PORT || 3001}`,
         changeOrigin: true,
         ws: true, // Enable WebSocket proxy
       },
