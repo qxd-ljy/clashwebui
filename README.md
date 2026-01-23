@@ -68,7 +68,9 @@ docker run -d \
   --restart always \
   --network host \
   -v ~/.config/clash:/root/.config/clash \
+  -e "WEBUI_PORT=3001" \
   -e "CLASH_MIXED_PORT=7890" \
+  -e "CLASH_EXTERNAL_CONTROLLER=127.0.0.1:9090" \
   -e "CLASH_SECRET=your_secret" \
   qxdljy/clashwebui:latest
 ```
@@ -78,9 +80,6 @@ docker run -d \
 docker run -d `
   --name clashwebui `
   --restart always `
-  -p 3001:3001 `
-  -p 7890:7890 `
-  -p 9092:9092 `
   -v $HOME/.config/clash:/root/.config/clash `
   -e "WEBUI_PORT=3001" `
   -e "CLASH_MIXED_PORT=7890" `
