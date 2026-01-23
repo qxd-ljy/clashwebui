@@ -64,7 +64,7 @@ chmod +x start.sh
 ./start.sh
 ```
 
-- 服务地址: http://localhost:3002 (可在 config.yaml 中配置)
+- 服务地址: http://localhost:3000 (可在 config.yaml 中配置)
 - 首次运行时会自动构建前端 (npm build)
 
 ### 2. 开发环境 (前端热更新)
