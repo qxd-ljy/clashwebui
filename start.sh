@@ -1,10 +1,17 @@
 #!/bin/bash
 
 # ============ 配置区域 ============
-# Python 解释器路径（可修改为你的 Python 路径）
-PYTHON_INTERPRETER="python"
-# 或者使用 conda 环境：
-# PYTHON_INTERPRETER="$HOME/miniconda3/envs/paper3/bin/python"
+# 尝试从 config.yaml 读取 Python 解释器
+if [ -f "config.yaml" ]; then
+    CONFIG_PYTHON=$(grep "interpreter:" config.yaml | head -n 1 | awk -F '"' '{print $2}')
+    if [ ! -z "$CONFIG_PYTHON" ]; then
+        PYTHON_INTERPRETER="$CONFIG_PYTHON"
+    fi
+fi
+# 如果配置为空，默认使用 python
+if [ -z "$PYTHON_INTERPRETER" ]; then
+    PYTHON_INTERPRETER="python"
+fi
 
 # ============ 颜色定义 ============
 GREEN='\033[0;32m'

@@ -1,0 +1,76 @@
+# ClashWebUI 配置文件
+# 所有可配置项都集中在这里
+
+# ============ Python 环境 ============
+python:
+  # Python 解释器路径
+  # 默认使用系统 python，也可以指定 conda 环境
+  interpreter: "python"
+  # 示例: "$HOME/miniconda3/envs/paper3/bin/python"
+  
+# ============ 服务端口配置 ============
+ports:
+  # WebUI 后端服务端口
+  webui: 3001
+  
+  # Clash 混合代理端口 (HTTP + SOCKS5)
+  clash_mixed: 7890
+  
+  # Clash 外部控制 API 端口
+  clash_controller: 9092
+  
+# ============ Clash 配置 ============
+clash:
+  # Clash 配置文件目录
+  config_dir: "~/.config/clash"
+  
+  # Clash 可执行文件路径
+  # 留空则从 PATH 查找
+  binary_path: ""
+  
+  # External Controller 地址
+  controller_host: "127.0.0.1"
+  
+  # API 密钥（留空表示无密钥）
+  secret: ""
+  
+# ============ 系统配置 ============
+system:
+  # 是否自动设置系统代理
+  auto_set_proxy: true
+  
+  # 是否启用 TUN 模式
+  tun_mode: false
+  
+  # 开机自启动
+  auto_start: false
+  
+# ============ 前端配置 ============
+frontend:
+  # Vite 开发服务器端口
+  dev_port: 5173
+  
+  # 是否在开发模式下自动打开浏览器
+  auto_open_browser: false
+  
+# ============ 日志配置 ============
+logging:
+  # 日志级别: debug, info, warning, error
+  level: "info"
+  
+  # 日志目录
+  directory: "logs"
+  
+  # 是否保存日志到文件
+  save_to_file: true
+  
+# ============ 高级配置 ============
+advanced:
+  # 延迟测试并发数
+  delay_test_concurrency: 15
+  
+  # 延迟测试超时时间 (毫秒)
+  delay_test_timeout: 2500
+  
+  # 订阅更新间隔 (小时)
+  subscription_update_interval: 24

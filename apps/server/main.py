@@ -20,10 +20,43 @@ app = FastAPI()
 start_time = time.time()
 
 # Configuration Paths
-# Configuration Paths
-# Explicitly set to user request path to avoid ambiguity
-# Explicitly set to user request path to avoid ambiguity
-CONFIG_DIR = os.getenv("CLASH_CONFIG_DIR", os.path.expanduser("~/.config/clash"))
+# Determine Project Root (apps/server/main.py -> ../../)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+PROJECT_CONFIG_PATH = os.path.join(PROJECT_ROOT, "config.yaml")
+
+# Default settings
+DEFAULT_CONFIG = {
+    "clash": {
+        "config_dir": "~/.config/clash",
+        "controller_host": "127.0.0.1",
+        "controller_port": 9092, # Legacy support
+    },
+    "ports": {
+        "webui": 3001,
+        "clash_controller": 9092
+    }
+}
+
+APP_CONFIG = DEFAULT_CONFIG
+
+# Load Config if exists
+if os.path.exists(PROJECT_CONFIG_PATH):
+    try:
+        with open(PROJECT_CONFIG_PATH, 'r') as f:
+            user_config = yaml.safe_load(f)
+            # Deep merge simple (just 1 level for now)
+            for k, v in user_config.items():
+                if isinstance(v, dict) and k in APP_CONFIG:
+                   APP_CONFIG[k].update(v)
+                else:
+                   APP_CONFIG[k] = v
+            print(f"Loaded config from {PROJECT_CONFIG_PATH}")
+    except Exception as e:
+        print(f"Failed to load config.yaml: {e}")
+
+# Apply Config
+clash_config_dir = APP_CONFIG["clash"].get("config_dir", "~/.config/clash")
+CONFIG_DIR = os.getenv("CLASH_CONFIG_DIR", os.path.expanduser(clash_config_dir))
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.yaml")
 PROFILES_DIR = os.path.join(CONFIG_DIR, "profiles")
 PROFILES_INDEX = os.path.join(CONFIG_DIR, "profiles.json")
@@ -1061,8 +1094,15 @@ app.mount("/backend", backend_app)
 async def proxy_clash_api(path_name: str, request: Request):
     # Get configured controller address
     index = load_index()
-    controller = "127.0.0.1:9092"
-    secret = ""
+    
+    # Default from Config
+    default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
+    default_port = APP_CONFIG["ports"].get("clash_controller", 9092)
+    default_secret = APP_CONFIG["clash"].get("secret", "")
+    
+    controller = f"{default_host}:{default_port}"
+    secret = default_secret
+    
     if index.preferences:
         controller = index.preferences.external_controller or controller
         secret = index.preferences.secret or secret
@@ -1136,5 +1176,6 @@ else:
     print(f"Warning: Static directory {STATIC_DIR} not found. Running in API-only mode.")
 
 if __name__ == "__main__":
-    port = int(os.getenv("WEBUI_PORT", 3001))
+    webui_port = APP_CONFIG["ports"].get("webui", 3001)
+    port = int(os.getenv("WEBUI_PORT", webui_port))
     uvicorn.run(app, host="0.0.0.0", port=port)
