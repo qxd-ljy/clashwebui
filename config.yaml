@@ -17,7 +17,7 @@ ports:
   clash_mixed: 7890
   
   # Clash 外部控制 API 端口
-  clash_controller: 9092
+  clash_controller: 9090
   
   # 前端开发服务器端口 (用于 start-dev.sh)
   frontend_dev: 5173
@@ -48,11 +48,11 @@ system:
   # 开机自启动
   auto_start: false
   
-# ============ 前端配置 ============
-frontend:
-
-  # 是否在开发模式下自动打开浏览器
-  auto_open_browser: false
+  # 允许局域网访问
+  allow_lan: true
+  
+  # IPv6 支持
+  ipv6: false
   
 # ============ 日志配置 ============
 logging:

@@ -35,8 +35,8 @@ export const SettingsProvider = ({ children }) => {
                 ...prev,
                 systemProxy: preferences.system_proxy || false,
                 tunMode: preferences.tun_mode || configData.tun?.enable || false,
-                ipv6: configData.ipv6 || false,
-                lanAccess: configData['allow-lan'] || false,
+                ipv6: preferences.ipv6 !== undefined ? preferences.ipv6 : (configData.ipv6 || false),
+                lanAccess: preferences.allow_lan !== undefined ? preferences.allow_lan : (configData['allow-lan'] || false),
                 mixedPort: preferences.mixed_port || configData.port || 7890,
                 backendPort: preferences.backend_port || 3001,
                 externalController: preferences.external_controller || configData['external-controller'] || '127.0.0.1:9092',
@@ -47,6 +47,7 @@ export const SettingsProvider = ({ children }) => {
                 webuiWorkingDirectory: preferences.webui_working_directory || null,
                 isInitialLoading: false
             }));
+
         } catch (error) {
             console.error("Failed to fetch settings:", error);
             setSettings(prev => ({ ...prev, isInitialLoading: false }));
@@ -76,7 +77,9 @@ export const SettingsProvider = ({ children }) => {
             mixedPort: 'mixed_port',
             backendPort: 'backend_port',
             externalController: 'external_controller',
-            secret: 'secret'
+            secret: 'secret',
+            ipv6: 'ipv6',
+            lanAccess: 'allow_lan'
         };
 
         setSettings(prev => ({ ...prev, [field]: value }));

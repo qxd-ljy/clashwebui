@@ -24,6 +24,14 @@ export default defineConfig({
         target: `http://127.0.0.1:${process.env.BACKEND_PORT || 3000}`,
         changeOrigin: true,
         ws: false,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('[Vite Proxy Error /backend]', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('[Vite Proxy] /backend ->', req.url);
+          });
+        },
       },
       // Clash External Controller API (通过后端代理以添加认证)
       '/api': {

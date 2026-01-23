@@ -13,11 +13,17 @@ const Settings = () => {
         pythonInterpreterPath, webuiWorkingDirectory,
         isInitialLoading: loading,
         updateSystemProxy, updateTunMode,
-        updatePreferenceField, updateConfigField
+        updatePreferenceField, updateConfigField,
+        refreshSettings
     } = useSettings();
 
     const [autoStartEnabled, setAutoStartEnabled] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+
+    // Refresh settings when component mounts (page is visited)
+    React.useEffect(() => {
+        refreshSettings();
+    }, []);
 
     React.useEffect(() => {
         // Use relative path to leverage Vite proxy
@@ -48,8 +54,8 @@ const Settings = () => {
     const toggle = async (key) => {
         if (key === 'systemProxy') await updateSystemProxy(!systemProxy);
         else if (key === 'tunMode') await updateTunMode(!tunMode);
-        else if (key === 'ipv6') await updateConfigField('ipv6', !ipv6);
-        else if (key === 'lanAccess') await updateConfigField('lanAccess', !lanAccess);
+        else if (key === 'ipv6') await updatePreferenceField('ipv6', !ipv6);
+        else if (key === 'lanAccess') await updatePreferenceField('lanAccess', !lanAccess);
     };
 
     const saveSettings = async () => {

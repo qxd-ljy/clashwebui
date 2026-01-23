@@ -15,6 +15,8 @@ import psutil
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.requests import Request
 from starlette.responses import Response
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = FastAPI()
 start_time = time.time()
@@ -24,28 +26,51 @@ start_time = time.time()
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 PROJECT_CONFIG_PATH = os.path.join(PROJECT_ROOT, "config.yaml")
 
-# Default settings
+# Default settings - 包含所有配置项
 DEFAULT_CONFIG = {
-    "clash": {
-        "config_dir": "~/.config/clash",
-        "controller_host": "127.0.0.1",
-        "controller_port": 9092, # Legacy support
+    "python": {
+        "interpreter": "python"
     },
     "ports": {
         "webui": 3000,
-        "clash_controller": 9092
+        "clash_mixed": 7890,
+        "clash_controller": 9090,
+        "frontend_dev": 5173
+    },
+    "clash": {
+        "config_dir": "~/.config/clash",
+        "binary_path": "",
+        "controller_host": "127.0.0.1",
+        "secret": ""
+    },
+    "system": {
+        "auto_set_proxy": False,
+        "tun_mode": False,
+        "auto_start": False,
+        "allow_lan": True,
+        "ipv6": False
+    },
+    "logging": {
+        "level": "info",
+        "directory": "logs",
+        "save_to_file": True
+    },
+    "advanced": {
+        "delay_test_concurrency": 15,
+        "delay_test_timeout": 2500,
+        "subscription_update_interval": 24
     }
 }
 
-APP_CONFIG = DEFAULT_CONFIG
+APP_CONFIG = DEFAULT_CONFIG.copy()
 
 # Load Config if exists
 if os.path.exists(PROJECT_CONFIG_PATH):
     try:
         with open(PROJECT_CONFIG_PATH, 'r') as f:
             user_config = yaml.safe_load(f)
-            # Deep merge simple (just 1 level for now)
-            for k, v in user_config.items():
+            # Deep merge (2 levels)
+            for k, v in (user_config or {}).items():
                 if isinstance(v, dict) and k in APP_CONFIG:
                    APP_CONFIG[k].update(v)
                 else:
@@ -53,6 +78,38 @@ if os.path.exists(PROJECT_CONFIG_PATH):
             print(f"Loaded config from {PROJECT_CONFIG_PATH}")
     except Exception as e:
         print(f"Failed to load config.yaml: {e}")
+
+# Configure Logging
+log_config = APP_CONFIG.get("logging", {})
+log_level = getattr(logging, log_config.get("level", "info").upper(), logging.INFO)
+log_dir = log_config.get("directory", "logs")
+save_to_file = log_config.get("save_to_file", True)
+
+# Create log directory
+if save_to_file and not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup logging
+logging.basicConfig(
+    level=log_level,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console output
+    ]
+)
+
+if save_to_file:
+    # Add file handler with rotation
+    file_handler = RotatingFileHandler(
+        os.path.join(log_dir, 'backend.log'),
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
+    )
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+
+logger = logging.getLogger(__name__)
+logger.info(f"ClashWebUI Backend starting with log level: {log_config.get('level', 'info').upper()}")
 
 # Apply Config
 clash_config_dir = APP_CONFIG["clash"].get("config_dir", "~/.config/clash")
@@ -118,18 +175,23 @@ class ProfileUpdate(BaseModel):
     allow_unsafe: Optional[bool] = None
 
 class Preferences(BaseModel):
-    mixed_port: Optional[int] = int(os.getenv("CLASH_MIXED_PORT", 7890))
-    external_controller: Optional[str] = os.getenv("CLASH_EXTERNAL_CONTROLLER", "127.0.0.1:9092")
-    secret: Optional[str] = os.getenv("CLASH_SECRET", "")
-    system_proxy: Optional[bool] = False
-    tun_mode: Optional[bool] = False
-    backend_port: Optional[int] = int(os.getenv("WEBUI_PORT", 3000))
+    mixed_port: Optional[int] = int(os.getenv("CLASH_MIXED_PORT", APP_CONFIG["ports"].get("clash_mixed", 7890)))
+    external_controller: Optional[str] = os.getenv("CLASH_EXTERNAL_CONTROLLER", f"{APP_CONFIG['clash'].get('controller_host', '127.0.0.1')}:{APP_CONFIG['ports'].get('clash_controller', 9090)}")
+    secret: Optional[str] = os.getenv("CLASH_SECRET", APP_CONFIG["clash"].get("secret", ""))
+    system_proxy: Optional[bool] = os.getenv("AUTO_SET_PROXY", str(APP_CONFIG["system"].get("auto_set_proxy", False))).lower() == "true"
+    tun_mode: Optional[bool] = os.getenv("TUN_MODE", str(APP_CONFIG["system"].get("tun_mode", False))).lower() == "true"
+    allow_lan: Optional[bool] = os.getenv("ALLOW_LAN", str(APP_CONFIG["system"].get("allow_lan", True))).lower() == "true"
+    ipv6: Optional[bool] = os.getenv("IPV6", str(APP_CONFIG["system"].get("ipv6", False))).lower() == "true"
+    backend_port: Optional[int] = int(os.getenv("WEBUI_PORT", APP_CONFIG["ports"].get("webui", 3000)))
+
+
     
     # 自定义路径
-    clash_binary_path: Optional[str] = "~/.bin/clash"
-    clash_config_dir: Optional[str] = "~/.config/clash"
-    python_interpreter_path: Optional[str] = None  # None = auto-detect
+    clash_binary_path: Optional[str] = APP_CONFIG["clash"].get("binary_path", "~/.bin/clash")
+    clash_config_dir: Optional[str] = APP_CONFIG["clash"].get("config_dir", "~/.config/clash")
+    python_interpreter_path: Optional[str] = APP_CONFIG["python"].get("interpreter", "python")
     webui_working_directory: Optional[str] = None  # None = current directory
+
 
 class ProfilesIndex(BaseModel):
     profiles: List[Profile]
@@ -342,6 +404,9 @@ def inject_config_overrides(config: dict, prefs: Preferences):
     config.pop("socks-port", None)
     config["external-controller"] = prefs.external_controller
     config["secret"] = prefs.secret
+    config["allow-lan"] = prefs.allow_lan
+    config["ipv6"] = prefs.ipv6
+
     
     # Enhanced TUN Configuration
     if prefs.tun_mode:
@@ -733,8 +798,8 @@ async def import_profile(data: ProfileImport):
             # Apply Logic (Duplicate of select_profile logic, consider refactoring if complex)
             # 1. Merge Prefs
             try:
-                 # Load YAML
-                import yaml
+                # Load YAML
+                # import yaml <--- REMOVED
                 profile_config = yaml.safe_load(yaml_content)
                 
                 # Inject
@@ -833,9 +898,24 @@ async def reload_clash_config():
     """Force Clash Core to reload the config file"""
     try:
         index = load_index()
-        secret = index.preferences.secret if index.preferences else ""
         
-        url = "http://127.0.0.1:9092/configs"
+        # Default from Config
+        default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
+        default_port = APP_CONFIG["ports"].get("clash_controller", 9090)
+        default_secret = APP_CONFIG["clash"].get("secret", "")
+        
+        controller = f"{default_host}:{default_port}"
+        secret = default_secret
+        
+        if index.preferences:
+            controller = index.preferences.external_controller or controller
+            secret = index.preferences.secret or secret
+        
+        # Ensure protocol
+        if not controller.startswith("http"):
+            controller = f"http://{controller}"
+            
+        url = f"{controller}/configs"
         payload = {"path": CONFIG_PATH}
         headers = {"Authorization": f"Bearer {secret}"} if secret else {}
         
@@ -896,9 +976,10 @@ async def test_unlock(req: TestRequest):
     proxy_port = index.preferences.mixed_port if index.preferences else 7890
     proxy_url = f"http://127.0.0.1:{proxy_port}"
     
+    timeout_s = APP_CONFIG.get("advanced", {}).get("delay_test_timeout", 5000) / 1000.0
     start_time = time.time()
     try:
-        async with httpx.AsyncClient(proxy=proxy_url, verify=False, timeout=10.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(proxy=proxy_url, verify=False, timeout=timeout_s, follow_redirects=True) as client:
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
@@ -1022,6 +1103,24 @@ async def startup_event():
             save_index(index)
         except Exception as e:
             print(f"Failed to discover existing config: {e}")
+    
+    # Apply system configuration from config.yaml
+    system_config = APP_CONFIG.get("system", {})
+    
+    # Apply auto_set_proxy if configured
+    if system_config.get("auto_set_proxy") and index.preferences:
+        try:
+            proxy_port = index.preferences.mixed_port or APP_CONFIG["ports"].get("clash_mixed", 7890)
+            set_system_proxy(True, proxy_port)
+            logger.info(f"系统代理已自动启用 (端口: {proxy_port})")
+        except Exception as e:
+            logger.error(f"自动启用系统代理失败: {e}")
+    
+    # Log configuration info
+    advanced_config = APP_CONFIG.get("advanced", {})
+    logger.info(f"高级配置 - 延迟测试: 并发={advanced_config.get('delay_test_concurrency', 10)}, 超时={advanced_config.get('delay_test_timeout', 5000)}ms")
+    logger.info(f"高级配置 - 订阅更新间隔: {advanced_config.get('subscription_update_interval', 24)} 小时")
+
 
 @app.websocket("/memory")
 async def websocket_memory(websocket: WebSocket):
@@ -1109,6 +1208,153 @@ app = FastAPI()
 # 3. Mount the Backend
 app.mount("/backend", backend_app)
 
+# 3.1 WebSocket Proxy Helper
+import websockets
+from fastapi import WebSocketDisconnect
+
+async def proxy_websocket_to_clash(websocket: WebSocket, path: str):
+    await websocket.accept()
+    
+    # Determine Controller Address
+    index = load_index()
+    default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
+    default_port = APP_CONFIG["ports"].get("clash_controller", 9090)
+    default_secret = APP_CONFIG["clash"].get("secret", "")
+    
+    controller_host = default_host
+    controller_port = default_port
+    secret = default_secret
+    
+    if index.preferences:
+        # Parse external controller if needed, simplified here assuming host:port
+        if index.preferences.external_controller:
+            try:
+                if ":" in index.preferences.external_controller:
+                    host, port = index.preferences.external_controller.split(":", 1)
+                    controller_host = host
+                    controller_port = int(port)
+                else:
+                    controller_host = index.preferences.external_controller
+            except:
+                pass
+        secret = index.preferences.secret or secret
+
+    # Normalize secret
+    if secret is not None:
+        secret = str(secret).strip()
+
+    # Build upstream WS URL
+    ws_url = f"ws://{controller_host}:{controller_port}/{path}"
+    if secret:
+        ws_url += f"?token={secret}"
+        
+    try:
+        async with websockets.connect(ws_url) as upstream_ws:
+            # Bidirectional forwarding
+            async def forward_client_to_upstream():
+                try:
+                    while True:
+                        data = await websocket.receive_text()
+                        await upstream_ws.send(data)
+                except WebSocketDisconnect:
+                    pass
+                except Exception:
+                    pass
+
+            async def forward_upstream_to_client():
+                try:
+                    while True:
+                        data = await upstream_ws.recv()
+                        await websocket.send_text(data)
+                except Exception:
+                    pass
+            
+            # Run both tasks
+            # Since Clash WS for traffic/logs is mostly read-only (server push), 
+            # we focus on upstream -> client. 
+            # But kept structure for completeness.
+            await asyncio.gather(
+                forward_client_to_upstream(),
+                forward_upstream_to_client(),
+                return_exceptions=True
+            )
+    except Exception as e:
+        print(f"WS Proxy Error ({path}): {e}")
+        try:
+            await websocket.close(code=1011) # Internal Error
+        except:
+            pass
+
+# 3.2 Specific WebSocket Endpoints (Override generic proxy)
+@app.websocket("/api/traffic")
+async def ws_traffic(websocket: WebSocket):
+    await proxy_websocket_to_clash(websocket, "traffic")
+
+@app.websocket("/api/logs")
+async def ws_logs(websocket: WebSocket, level: str = "info"):
+    # Clash logs WS is /logs?level=...
+    # We need to construct path manually query params are not passed in path arg automatically
+    path = f"logs?level={level}"
+    await proxy_websocket_to_clash(websocket, path)
+
+@app.websocket("/api/memory")
+async def ws_memory(websocket: WebSocket):
+    # Local Memory - Get total memory of Clash + Frontend + Backend
+    await websocket.accept()
+    try:
+        while True:
+            total_project_mem = 0
+            backend_procs = []  # 收集所有后端进程
+            
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'create_time']):
+                try:
+                    name = proc.info['name'] or ''
+                    cmdline = ' '.join(proc.info['cmdline'] or [])
+                    
+                    # 1. Clash core process (exact match, must be the clash binary)
+                    if name == 'clash':
+                        if '-d' in cmdline and '.config/clash' in cmdline:
+                            mem_info = proc.memory_info()
+                            total_project_mem += mem_info.rss
+                    
+                    # 2. Backend process (collect all, will select newest later)
+                    elif name == 'python' or name.startswith('python'):
+                        if 'apps/server/main.py' in cmdline and 'python -c' not in cmdline:
+                            backend_procs.append((proc.info['create_time'], proc))
+                    
+                    # 3. Frontend process (Vite dev server)
+                    elif name == 'node':
+                        if 'vite' in cmdline.lower() or '/vite' in cmdline:
+                            mem_info = proc.memory_info()
+                            total_project_mem += mem_info.rss
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            
+            # Only count the newest backend process (if multiple exist)
+            if backend_procs:
+                backend_procs.sort(key=lambda x: x[0], reverse=True)  # Sort by create_time, newest first
+                newest_backend = backend_procs[0][1]
+                try:
+                    mem_info = newest_backend.memory_info()
+                    total_project_mem += mem_info.rss
+                except:
+                    pass
+            
+            # Get total system memory for reference
+            sys_mem = psutil.virtual_memory()
+            
+            await websocket.send_json({
+                "inuse": total_project_mem,  # Total project memory (Clash + Frontend + Backend)
+                "total": sys_mem.total  # Total system memory
+            })
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print(f"Memory WS error: {e}")
+
+
 # 4. Implement /api Proxy (Clash External Controller)
 @app.api_route("/api/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy_clash_api(path_name: str, request: Request):
@@ -1118,7 +1364,7 @@ async def proxy_clash_api(path_name: str, request: Request):
         
         # Default from Config
         default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
-        default_port = APP_CONFIG["ports"].get("clash_controller", 9092)
+        default_port = APP_CONFIG["ports"].get("clash_controller", 9090)
         default_secret = APP_CONFIG["clash"].get("secret", "")
         
         controller = f"{default_host}:{default_port}"
@@ -1128,6 +1374,10 @@ async def proxy_clash_api(path_name: str, request: Request):
             controller = index.preferences.external_controller or controller
             secret = index.preferences.secret or secret
         
+        # Normalize secret
+        if secret is not None:
+            secret = str(secret).strip()
+
         # Ensure protocol
         if not controller.startswith("http"):
             controller = f"http://{controller}"
@@ -1141,7 +1391,8 @@ async def proxy_clash_api(path_name: str, request: Request):
         if secret:
             headers["Authorization"] = f"Bearer {secret}"
 
-        async with httpx.AsyncClient() as client:
+        print(f"[DEBUG] Proxying to: {target_url}")
+        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
             try:
                 content = await request.body()
                 proxy_req = client.build_request(
@@ -1153,12 +1404,44 @@ async def proxy_clash_api(path_name: str, request: Request):
                 )
                 proxy_res = await client.send(proxy_req)
                 
+                # Fix: Vite proxy error "Content-Length can't be present with Transfer-Encoding"
+                # Properly filter HTTP headers for proxy response
+                # Reference: RFC 7230 Section 6.1 (Connection and hop-by-hop headers)
+                
+                # Hop-by-hop headers that must not be forwarded by proxies
+                hop_by_hop_headers = {
+                    'connection', 'keep-alive', 'proxy-authenticate',
+                    'proxy-authorization', 'proxy-connection', 'te', 
+                    'trailers', 'transfer-encoding', 'upgrade'
+                }
+                
+                response_headers = {}
+                has_transfer_encoding = any(
+                    key.lower() == 'transfer-encoding' 
+                    for key in proxy_res.headers.keys()
+                )
+                
+                for key, value in proxy_res.headers.items():
+                    key_lower = key.lower()
+                    
+                    # Skip hop-by-hop headers
+                    if key_lower in hop_by_hop_headers:
+                        continue
+                    
+                    # Skip content-length if transfer-encoding exists (mutually exclusive per RFC 7230)
+                    if key_lower == 'content-length' and has_transfer_encoding:
+                        continue
+                    
+                    response_headers[key] = value
+                
                 return Response(
                     content=proxy_res.content,
                     status_code=proxy_res.status_code,
-                    headers=dict(proxy_res.headers)
+                    headers=response_headers
                 )
             except Exception as e:
+                import traceback
+                print(f"[ERROR] Proxy Connect Failed: {e}\n{traceback.format_exc()}")
                 return Response(
                     content=json.dumps({"error": f"Clash Proxy Connection Failed: {str(e)}"}), 
                     status_code=502,

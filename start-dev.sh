@@ -66,6 +66,25 @@ cd "$(dirname "$0")"
 # 确保日志目录存在
 mkdir -p logs
 
+# 确保 Clash 配置目录权限
+CLASH_CONFIG_DIR="$HOME/.config/clash"
+if [ ! -d "$CLASH_CONFIG_DIR" ]; then
+    mkdir -p "$CLASH_CONFIG_DIR"
+else
+    # 检查是否可写
+    if [ ! -w "$CLASH_CONFIG_DIR" ]; then
+        log_warning "检测到配置目录权限不足，正在尝试修复..."
+        # 尝试使用 sudo 修复权限
+        sudo chown -R $USER:$USER "$CLASH_CONFIG_DIR"
+        if [ $? -eq 0 ]; then
+            log_success "权限修复成功"
+        else
+            log_error "权限修复失败，请手动执行: sudo chown -R $USER:$USER $CLASH_CONFIG_DIR"
+            exit 1
+        fi
+    fi
+fi
+
 log_info "ClashWebUI 开发环境启动脚本"
 log_info "Python 解释器: $PYTHON_INTERPRETER"
 echo ""
@@ -128,6 +147,7 @@ if [ -f "config.yaml" ]; then
         PORT_BACKEND=$CONFIG_BACKEND
     fi
 fi
+
 
 cd apps/web
 # 传递 BACKEND_PORT 环境变量给 Vite
