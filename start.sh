@@ -57,6 +57,9 @@ trap cleanup SIGINT SIGTERM
 # ============ 主逻辑 ============
 cd "$(dirname "$0")"
 
+# 确保日志目录存在
+mkdir -p logs
+
 log_info "ClashWebUI 启动脚本"
 log_info "Python 解释器: $PYTHON_INTERPRETER"
 echo ""
