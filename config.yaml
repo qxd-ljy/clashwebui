@@ -11,7 +11,7 @@ python:
 # ============ 服务端口配置 ============
 ports:
   # WebUI 后端服务端口
-  webui: 3002
+  webui: 3000
   
   # Clash 混合代理端口 (HTTP + SOCKS5)
   clash_mixed: 7890
