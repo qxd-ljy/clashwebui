@@ -5,8 +5,8 @@
 python:
   # Python 解释器路径
   # 默认使用系统 python，也可以指定 conda 环境
-  interpreter: "$HOME/miniconda3/envs/paper3/bin/python"
-  # 示例: "$HOME/miniconda3/envs/paper3/bin/python"
+  interpreter: "python"
+  # 示例: "$HOME/miniconda3/envs/*/bin/python"
   
 # ============ 服务端口配置 ============
 ports:
