@@ -79,14 +79,13 @@ fi
 echo ""
 
 # 2. 检查 Python 依赖
-log_info "步骤 2/3: 检查 Python 依赖..."
-$PYTHON_INTERPRETER -c "import fastapi" 2>/dev/null
-if [ $? -ne 0 ]; then
-    log_warning "检测到缺少依赖，正在安装..."
-    $PYTHON_INTERPRETER -m pip install -r requirements.txt
-    log_success "依赖安装完成"
-else
+log_info "步骤 2/3: 检查并更新 Python 依赖..."
+$PYTHON_INTERPRETER -m pip install -r requirements.txt > /dev/null
+if [ $? -eq 0 ]; then
     log_success "Python 依赖已满足"
+else
+    log_error "依赖安装失败"
+    exit 1
 fi
 echo ""
 
