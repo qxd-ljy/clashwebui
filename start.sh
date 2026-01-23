@@ -43,4 +43,6 @@ if [ "$START_FRONTEND_DEV" -eq 1 ]; then
 fi
 
 # 启动 (确保已安装依赖: pip install -r requirements.txt)
+# 将 ~ 替换为 $HOME 以支持波浪号路径
+PYTHON_BIN="${PYTHON_BIN/#\~/$HOME}"
 $PYTHON_BIN apps/server/main.py
