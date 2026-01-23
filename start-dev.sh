@@ -5,7 +5,8 @@
 if [ -f "config.yaml" ]; then
     CONFIG_PYTHON=$(grep "interpreter:" config.yaml | head -n 1 | awk -F '"' '{print $2}')
     if [ ! -z "$CONFIG_PYTHON" ]; then
-        PYTHON_INTERPRETER="$CONFIG_PYTHON"
+        # 展开 $HOME 变量
+        PYTHON_INTERPRETER=${CONFIG_PYTHON//\$HOME/$HOME}
     fi
 fi
 # 如果配置为空，默认使用 python
