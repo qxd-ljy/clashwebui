@@ -74,6 +74,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    error_msg = f"{str(exc)}\n{traceback.format_exc()}"
+    print(f"Global Error: {error_msg}")
+    return Response(
+        content=json.dumps({"detail": str(exc), "trace": traceback.format_exc()}),
+        status_code=500,
+        media_type="application/json"
+    )
+
 class ProfileImport(BaseModel):
     type: str # 'remote' | 'local'
     url: Optional[str] = None
@@ -666,84 +678,92 @@ def get_profiles():
 
 @app.post("/profiles")
 async def import_profile(data: ProfileImport):
-    yaml_content = data.content
-    usage_data = {"used": 0, "total": 0}
-    profile_name = data.name # Keep it None if not provided
-    profile_url = data.url or ""
-    profile_id = str(uuid4())
-    interval = 1440 # Default 24h
-    
-    if data.type == "remote" and data.url:
-        result = await download_profile_content(data.url)
-        yaml_content = result["content"]
-        usage_data = result["usage"]
-        if not profile_name:
-            profile_name = result.get("name")
-        if result.get("interval"):
-            interval = result.get("interval")
-    
-    if not profile_name:
-        profile_name = "New Profile"
-    
-    # Validate YAML
     try:
-        yaml.safe_load(yaml_content)
-    except yaml.YAMLError:
-        raise HTTPException(status_code=400, detail="Invalid YAML content")
-
-    file_name = f"{profile_id}.yaml"
-    file_path = os.path.join(PROFILES_DIR, file_name)
-    
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(yaml_content)
+        yaml_content = data.content
+        usage_data = {"used": 0, "total": 0}
+        profile_name = data.name # Keep it None if not provided
+        profile_url = data.url or ""
+        profile_id = str(uuid4())
+        interval = 1440 # Default 24h
         
-    index = load_index()
-    new_profile = Profile(
-        id=profile_id,
-        name=profile_name,
-        type=data.type,
-        url=profile_url,
-        file=file_name,
-        updated=time.time() * 1000,
-        usage=usage_data,
-        interval=interval,
-        auto_update=True if data.type == "remote" else False
-    )
-    
-    index.profiles.append(new_profile)
-    
-    # 如果是第一个配置文件，自动应用它
-    first_profile = len(index.profiles) == 1
-    if first_profile:
-        index.selected = profile_id
+        if data.type == "remote" and data.url:
+            result = await download_profile_content(data.url)
+            yaml_content = result["content"]
+            usage_data = result["usage"]
+            if not profile_name:
+                profile_name = result.get("name")
+            if result.get("interval"):
+                interval = result.get("interval")
         
-        # Apply Logic (Duplicate of select_profile logic, consider refactoring if complex)
-        # 1. Merge Prefs
+        if not profile_name:
+            profile_name = "New Profile"
+        
+        # Validate YAML
         try:
-             # Load YAML
-            import yaml
-            profile_config = yaml.safe_load(yaml_content)
-            
-            # Inject
-            if index.preferences:
-                profile_config = inject_config_overrides(profile_config, index.preferences)
-            
-            # Write global config
-            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                yaml.safe_dump(profile_config, f)
-                
-            # Reload Core (Async inside sync function? No, import_profile is async)
-            await reload_clash_config()
-            
-            # Set System Proxy if needed
-            if index.preferences:
-                 set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
-                 
-        except Exception as e:
-            print(f"Failed to auto-apply imported profile: {e}")
+            yaml.safe_load(yaml_content)
+        except yaml.YAMLError:
+            raise HTTPException(status_code=400, detail="Invalid YAML content")
 
-    save_index(index)
-    return {"success": True, "profile": new_profile}
+        file_name = f"{profile_id}.yaml"
+        file_path = os.path.join(PROFILES_DIR, file_name)
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(yaml_content)
+            
+        index = load_index()
+        new_profile = Profile(
+            id=profile_id,
+            name=profile_name,
+            type=data.type,
+            url=profile_url,
+            file=file_name,
+            updated=time.time() * 1000,
+            usage=usage_data,
+            interval=interval,
+            auto_update=True if data.type == "remote" else False
+        )
+        
+        index.profiles.append(new_profile)
+        
+        # 如果是第一个配置文件，自动应用它
+        first_profile = len(index.profiles) == 1
+        if first_profile:
+            index.selected = profile_id
+            
+            # Apply Logic (Duplicate of select_profile logic, consider refactoring if complex)
+            # 1. Merge Prefs
+            try:
+                 # Load YAML
+                import yaml
+                profile_config = yaml.safe_load(yaml_content)
+                
+                # Inject
+                if index.preferences:
+                    profile_config = inject_config_overrides(profile_config, index.preferences)
+                
+                # Write global config
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    yaml.safe_dump(profile_config, f)
+                    
+                # Reload Core (Async inside sync function? No, import_profile is async)
+                await reload_clash_config()
+                
+                # Set System Proxy if needed
+                if index.preferences:
+                     set_system_proxy(index.preferences.system_proxy, index.preferences.mixed_port)
+                     
+            except Exception as e:
+                print(f"Failed to auto-apply imported profile: {e}")
+
+        save_index(index)
+        return {"success": True, "profile": new_profile}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Import Profile Failed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 @app.put("/profiles/{profile_id}")
 async def update_profile(profile_id: str):
@@ -1092,53 +1112,66 @@ app.mount("/backend", backend_app)
 # 4. Implement /api Proxy (Clash External Controller)
 @app.api_route("/api/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy_clash_api(path_name: str, request: Request):
-    # Get configured controller address
-    index = load_index()
-    
-    # Default from Config
-    default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
-    default_port = APP_CONFIG["ports"].get("clash_controller", 9092)
-    default_secret = APP_CONFIG["clash"].get("secret", "")
-    
-    controller = f"{default_host}:{default_port}"
-    secret = default_secret
-    
-    if index.preferences:
-        controller = index.preferences.external_controller or controller
-        secret = index.preferences.secret or secret
-    
-    # Ensure protocol
-    if not controller.startswith("http"):
-        controller = f"http://{controller}"
+    try:
+        # Get configured controller address
+        index = load_index()
         
-    target_url = f"{controller}/{path_name}"
-    
-    # Forward headers (excluding host)
-    headers = dict(request.headers)
-    headers.pop("host", None)
-    headers.pop("content-length", None)
-    if secret:
-        headers["Authorization"] = f"Bearer {secret}"
-
-    async with httpx.AsyncClient() as client:
-        try:
-            content = await request.body()
-            proxy_req = client.build_request(
-                request.method,
-                target_url,
-                headers=headers,
-                content=content,
-                params=request.query_params
-            )
-            proxy_res = await client.send(proxy_req)
+        # Default from Config
+        default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
+        default_port = APP_CONFIG["ports"].get("clash_controller", 9092)
+        default_secret = APP_CONFIG["clash"].get("secret", "")
+        
+        controller = f"{default_host}:{default_port}"
+        secret = default_secret
+        
+        if index.preferences:
+            controller = index.preferences.external_controller or controller
+            secret = index.preferences.secret or secret
+        
+        # Ensure protocol
+        if not controller.startswith("http"):
+            controller = f"http://{controller}"
             
-            return Response(
-                content=proxy_res.content,
-                status_code=proxy_res.status_code,
-                headers=dict(proxy_res.headers)
-            )
-        except Exception as e:
-            return Response(content=f"Clash Proxy Error: {str(e)}", status_code=502)
+        target_url = f"{controller}/{path_name}"
+        
+        # Forward headers (excluding host)
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        headers.pop("content-length", None)
+        if secret:
+            headers["Authorization"] = f"Bearer {secret}"
+
+        async with httpx.AsyncClient() as client:
+            try:
+                content = await request.body()
+                proxy_req = client.build_request(
+                    request.method,
+                    target_url,
+                    headers=headers,
+                    content=content,
+                    params=request.query_params
+                )
+                proxy_res = await client.send(proxy_req)
+                
+                return Response(
+                    content=proxy_res.content,
+                    status_code=proxy_res.status_code,
+                    headers=dict(proxy_res.headers)
+                )
+            except Exception as e:
+                return Response(
+                    content=json.dumps({"error": f"Clash Proxy Connection Failed: {str(e)}"}), 
+                    status_code=502,
+                    media_type="application/json"
+                )
+    except Exception as e:
+        import traceback
+        print(f"Proxy API Failed: {e}\n{traceback.format_exc()}")
+        return Response(
+            content=json.dumps({"error": f"Proxy Internal Error: {str(e)}"}),
+            status_code=500, # Use 500 for internal errors
+            media_type="application/json"
+        )
 
 # 5. Serve Static Files (SPA)
 from fastapi.staticfiles import StaticFiles
