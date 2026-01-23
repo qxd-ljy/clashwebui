@@ -50,48 +50,60 @@ clashwebui/
 └── requirements.txt     # 后端依赖清单
 ```
 
-## 🚀 快速开始 (本地开发)
+## 🚀 快速开始
 
-### 环境依赖
-- **Node.js**: v18+
-- **Python**: v3.10+
-- **Clash 内核**: 需后台运行并开启 External Controller (默认 9090)
+### 1. 启动服务 (生产/日常使用)
 
-### 1. 安装依赖
+我们提供了一键启动脚本 `start.sh`，它会自动构建前端并启动后端服务：
 
-**后端依赖**
 ```bash
-pip install -r requirements.txt
+# 赋予执行权限
+chmod +x start.sh
+
+# 启动服务
+./start.sh
 ```
 
-**前端依赖**
+- 服务地址: http://localhost:3002 (可在 config.yaml 中配置)
+- 首次运行时会自动构建前端 (npm build)
+
+### 2. 开发环境 (前端热更新)
+
+如果您需要修改前端代码并实时预览，请使用 `start-dev.sh`：
+
 ```bash
-cd apps/web
-npm install
+chmod +x start-dev.sh
+./start-dev.sh
 ```
 
-### 2. 启动服务
+该脚本会同时启动：
+- **后端 API**: http://localhost:3000
+- **前端开发服**: http://localhost:5173 (支持热更新)
 
-建议在两个终端窗口分别启动：
+### 3. 系统配置 (config.yaml)
 
-**终端 A: 后端服务**
-```bash
-# 在项目根目录下
-python apps/server/main.py
-# 服务地址: http://localhost:3001 (包含前端静态资源代理)
+项目根目录下提供了 `config.yaml` 文件，用于集中管理所有配置：
+
+```yaml
+python:
+  interpreter: "python" # 自定义 Python 解释器路径 (支持 Conda)
+
+ports:
+  webui: 3000          # WebUI 后端端口
+  clash_mixed: 7890    # Clash 代理端口
+  clash_controller: 9092
+  frontend_dev: 5173   # 前端开发端口
+  
+clash:
+  config_dir: "~/.config/clash"
+  secret: ""           # API 密钥
 ```
 
-**终端 B: 前端开发服 (可选)**
-```bash
-# 如需调试前端代码
-cd apps/web
-npm run dev
-# 访问地址: http://localhost:5173
-```
+启动脚本会自动读取此配置。
 
 ## 🔌 后端 API
 
-后端服务运行在端口 `3001`，提供以下核心 API：
+后端服务运行在端口 `3000` (可在 config.yaml 配置)，提供以下核心 API：
 
 ### 配置与状态
 - `GET /system_info`: 获取系统版本、Clash 运行模式及开机时间。
