@@ -68,6 +68,8 @@ docker run -d \
   --restart always \
   --network host \
   -v ~/.config/clash:/root/.config/clash \
+  -e "CLASH_MIXED_PORT=7890" \
+  -e "CLASH_SECRET=your_secret" \
   qxdljy/clashwebui:latest
 ```
 
