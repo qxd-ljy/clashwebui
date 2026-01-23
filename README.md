@@ -8,7 +8,7 @@
 
 基于 **React 18** + **FastAPI** 构建，提供与原版客户端一致的 "Premium" 级视觉体验与交互逻辑。
 
-[特性](#-特性) • [安装](#-快速开始) • [Docker 部署](#-docker-部署) • [架构](#-架构设计) • [API 文档](#-后端-api) • [截图](#-应用截图)
+[特性](#-特性) • [安装](#-快速开始) • [架构](#-架构设计) • [API 文档](#-后端-api) • [截图](#-应用截图)
 
 </div>
 
@@ -32,10 +32,7 @@
 ```mermaid
 graph TD
     User["用户浏览器"] <--> |HTTP/WebSocket| Web["前端 (Static) / API 代理"]
-    subgraph DockerEnv [Docker 容器]
-        Web <--> |Internal| Server["FastAPI 后端"]
-    end
-    Web <--> |Internal| Server
+    Web <--> |Internal| Server["FastAPI 后端"]
     Server <--> |REST API| Kernel["Clash 内核 (Mihomo)"]
     Server --> |Read/Write| Config["配置文件 (~/.config/clash)"]
 ```
