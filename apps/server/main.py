@@ -32,7 +32,7 @@ DEFAULT_CONFIG = {
         "controller_port": 9092, # Legacy support
     },
     "ports": {
-        "webui": 3001,
+        "webui": 3000,
         "clash_controller": 9092
     }
 }
@@ -111,7 +111,7 @@ class Preferences(BaseModel):
     secret: Optional[str] = os.getenv("CLASH_SECRET", "")
     system_proxy: Optional[bool] = False
     tun_mode: Optional[bool] = False
-    backend_port: Optional[int] = int(os.getenv("WEBUI_PORT", 3001))
+    backend_port: Optional[int] = int(os.getenv("WEBUI_PORT", 3000))
     
     # 自定义路径
     clash_binary_path: Optional[str] = "~/.bin/clash"
@@ -251,7 +251,7 @@ WantedBy=default.target
                 f.write(core_content)
             
             # 2. WebUI Service
-            backend_port = prefs.backend_port if prefs else 3001
+            backend_port = prefs.backend_port if prefs else 3000
             web_content = f"""[Unit]
 Description=ClashWebUI Backend Service
 After=network.target clash.service
@@ -1176,6 +1176,6 @@ else:
     print(f"Warning: Static directory {STATIC_DIR} not found. Running in API-only mode.")
 
 if __name__ == "__main__":
-    webui_port = APP_CONFIG["ports"].get("webui", 3001)
+    webui_port = APP_CONFIG["ports"].get("webui", 3000)
     port = int(os.getenv("WEBUI_PORT", webui_port))
     uvicorn.run(app, host="0.0.0.0", port=port)
