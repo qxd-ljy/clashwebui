@@ -5,19 +5,22 @@
 python:
   # Python 解释器路径
   # 默认使用系统 python，也可以指定 conda 环境
-  interpreter: "python"
+  interpreter: "$HOME/miniconda3/envs/paper3/bin/python"
   # 示例: "$HOME/miniconda3/envs/paper3/bin/python"
   
 # ============ 服务端口配置 ============
 ports:
   # WebUI 后端服务端口
-  webui: 3001
+  webui: 3002
   
   # Clash 混合代理端口 (HTTP + SOCKS5)
   clash_mixed: 7890
   
   # Clash 外部控制 API 端口
   clash_controller: 9092
+  
+  # 前端开发服务器端口 (用于 start-dev.sh)
+  frontend_dev: 5173
   
 # ============ Clash 配置 ============
 clash:
@@ -47,9 +50,7 @@ system:
   
 # ============ 前端配置 ============
 frontend:
-  # Vite 开发服务器端口
-  dev_port: 5173
-  
+
   # 是否在开发模式下自动打开浏览器
   auto_open_browser: false
   

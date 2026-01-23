@@ -108,14 +108,25 @@ echo ""
 
 # 4. 启动前端开发服务器
 log_info "步骤 4/4: 启动前端开发服务器..."
+
+# 读取前端端口配置
+FRONTEND_PORT=5173
+if [ -f "config.yaml" ]; then
+    CONFIG_PORT=$(grep "frontend_dev:" config.yaml | head -n 1 | awk -F ': ' '{print $2}')
+    if [ ! -z "$CONFIG_PORT" ]; then
+        FRONTEND_PORT=$CONFIG_PORT
+    fi
+fi
+
 cd apps/web
-npm run dev > ../../logs/frontend.log 2>&1 &
+PORT=$FRONTEND_PORT npm run dev > ../../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ../..
 sleep 2
 
 if ps -p $FRONTEND_PID > /dev/null; then
     log_success "前端开发服务器已启动 (PID: $FRONTEND_PID)"
+    log_success "访问地址: http://localhost:$FRONTEND_PORT (热更新)"
 else
     log_error "前端开发服务器启动失败，请检查 logs/frontend.log"
     cleanup
@@ -125,13 +136,19 @@ echo ""
 
 log_success "============================================"
 log_success "  ClashWebUI 开发环境已启动！"
-log_success "  前端开发: http://localhost:5173 (热更新)"
-log_success "  后端服务: http://localhost:3001 (稳定)"
+log_success "  前端开发: http://localhost:$FRONTEND_PORT (热更新)"
+# 简单解析后端端口用于显示
+BACKEND_PORT=3001
+if [ -f "config.yaml" ]; then
+    conf_bk_port=$(grep "webui:" config.yaml | head -n 1 | awk -F ': ' '{print $2}')
+    if [ ! -z "$conf_bk_port" ]; then BACKEND_PORT=$conf_bk_port; fi
+fi
+log_success "  后端服务: http://localhost:$BACKEND_PORT (稳定)"
 log_success "============================================"
 echo ""
 log_warning "【重要提示】"
 log_warning "由于 Vite WebSocket 代理问题，建议使用:"
-log_warning "  👉 http://localhost:3001 (推荐)"
+log_warning "  👉 http://localhost:$BACKEND_PORT (推荐)"
 log_warning ""
 log_info "日志文件:"
 log_info "  后端: logs/backend.log"
