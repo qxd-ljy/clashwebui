@@ -73,7 +73,7 @@ chmod +x start.sh
 
 ```bash
 chmod +x start-dev.sh
-./start-dev.sh
+../start-dev.sh --daemon
 ```
 
 该脚本会同时启动：

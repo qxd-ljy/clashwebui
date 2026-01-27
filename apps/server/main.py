@@ -550,7 +550,40 @@ async def download_profile_content(url: str) -> Dict[str, Any]:
         # If "total" is not in data, return a default or None
         return None
 
-    def _extract_name(resp, url):
+    def _extract_name_from_yaml(content: str) -> str:
+        """
+        Extract friendly name from YAML content by analyzing proxy groups.
+        Many subscription services embed their brand name in the first proxy group.
+        """
+        try:
+            import yaml
+            config = yaml.safe_load(content)
+            
+            # Method 1: Check proxy-groups for brand names
+            proxy_groups = config.get('proxy-groups', [])
+            if proxy_groups and len(proxy_groups) > 0:
+                # The first proxy group often contains the service brand
+                # Filter out common generic names
+                first_group_name = proxy_groups[0].get('name', '')
+                generic_names = ['select', 'proxy', 'auto', 'fallback', 'load-balance', 
+                                'url-test', 'manual', '代理选择', '自动选择', '手动切换',
+                                '节点选择', 'PROXY', 'SELECT', '☁️ 代理选择', '✏️ 手动切换']
+                
+                if first_group_name and first_group_name.lower() not in [n.lower() for n in generic_names]:
+                    # Found a potentially useful name
+                    # Remove emoji and special chars at the start
+                    import re
+                    cleaned = re.sub(r'^[^\w\u4e00-\u9fa5]+', '', first_group_name)
+                    if cleaned and len(cleaned) >= 2:
+                        print(f"[DEBUG] Extracted name from YAML proxy-groups: {cleaned}")
+                        return cleaned
+            
+        except Exception as e:
+            print(f"[DEBUG] Failed to extract name from YAML content: {e}")
+        
+        return None
+
+    def _extract_name(resp, url, content=None):
         # Log headers for debugging extraction issues
         print(f"[DEBUG] Full Headers: {dict(resp.headers)}")
 
@@ -610,7 +643,13 @@ async def download_profile_content(url: str) -> Dict[str, Any]:
                 except:
                     return res
 
-        # 3. Last fallback: URL baseline (Smarter)
+        # 3. Try extracting from YAML content (if provided)
+        if content:
+            content_name = _extract_name_from_yaml(content)
+            if content_name:
+                return content_name
+
+        # 4. Last fallback: URL baseline (Smarter)
         try:
             from urllib.parse import urlparse, unquote
             parsed = urlparse(url)
@@ -646,10 +685,11 @@ async def download_profile_content(url: str) -> Dict[str, Any]:
         async with httpx.AsyncClient(trust_env=False, timeout=30.0, headers=headers, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
+            content = resp.text
             return {
-                "content": resp.text, 
+                "content": content, 
                 "usage": await _extract_usage(resp),
-                "name": _extract_name(resp, url),
+                "name": _extract_name(resp, url, content),
                 "interval": _extract_interval(resp)
             }
     except Exception as e:
@@ -661,10 +701,11 @@ async def download_profile_content(url: str) -> Dict[str, Any]:
         async with httpx.AsyncClient(proxy="http://127.0.0.1:7890", timeout=30.0, headers=headers, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
+            content = resp.text
             return {
-                "content": resp.text, 
+                "content": content, 
                 "usage": await _extract_usage(resp),
-                "name": _extract_name(resp, url),
+                "name": _extract_name(resp, url, content),
                 "interval": _extract_interval(resp)
             }
     except Exception as e:
