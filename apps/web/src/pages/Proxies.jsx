@@ -170,7 +170,7 @@ const Proxies = () => {
             const proxies = data.proxies;
 
             const groupList = Object.values(proxies)
-                .filter(p => ['Selector', 'URLTest', 'Fallback'].includes(p.type))
+                .filter(p => ['Selector', 'URLTest', 'Fallback'].map(t => t.toLowerCase()).includes(p.type.toLowerCase()))
                 .map(p => ({
                     name: p.name,
                     type: p.type,

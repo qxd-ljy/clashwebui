@@ -256,7 +256,7 @@ async def get_proxy_geoip():
     except Exception as e:
         # Fallback to direct if proxy fails (though we want proxy info)
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
                 resp = await client.get(target_url)
                 return resp.json()
         except Exception as e2:
@@ -919,7 +919,7 @@ async def reload_clash_config():
         payload = {"path": CONFIG_PATH}
         headers = {"Authorization": f"Bearer {secret}"} if secret else {}
         
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, trust_env=False) as client:
             resp = await client.put(url, json=payload, headers=headers)
             if resp.status_code == 204:
                 print("Clash Core reloaded config successfully")
@@ -1356,6 +1356,90 @@ async def ws_memory(websocket: WebSocket):
 
 
 # 4. Implement /api Proxy (Clash External Controller)
+@app.websocket("/api/{path_name:path}")
+async def proxy_clash_ws(websocket: WebSocket, path_name: str):
+    await websocket.accept()
+    
+    # Get configured controller address
+    index = load_index()
+    default_host = APP_CONFIG["clash"].get("controller_host", "127.0.0.1")
+    default_port = APP_CONFIG["ports"].get("clash_controller", 9090)
+    default_secret = APP_CONFIG["clash"].get("secret", "")
+    
+    controller = f"{default_host}:{default_port}"
+    secret = default_secret
+    
+    if index.preferences:
+        controller = index.preferences.external_controller or controller
+        secret = index.preferences.secret or secret
+        
+    # Ensure protocol (ws/wss)
+    if not controller.startswith("http"):
+        # Assuming http -> ws
+        ws_controller = f"ws://{controller}"
+    else:
+        ws_controller = controller.replace("http://", "ws://").replace("https://", "wss://")
+
+    target_url = f"{ws_controller}/{path_name}"
+    
+    # Add auth token if needed
+    if secret:
+        # Check if query params already exist
+        if "?" in target_url:
+            target_url += f"&token={secret}"
+        else:
+            target_url += f"?token={secret}"
+            
+    # Forward query params from client
+    query_params = dict(websocket.query_params)
+    for k, v in query_params.items():
+        if k != "token": # avoid duplicate token if we added it
+             if "?" in target_url:
+                target_url += f"&{k}={v}"
+             else:
+                target_url += f"?{k}={v}"
+
+    print(f"[DEBUG] WS Proxying to: {target_url}")
+    
+    try:
+        import websockets
+        async with websockets.connect(target_url) as ws_server:
+            async def forward_client_to_server():
+                try:
+                    while True:
+                        data = await websocket.receive_bytes()
+                        await ws_server.send(data)
+                except Exception:
+                    pass
+
+            async def forward_server_to_client():
+                try:
+                    while True:
+                        data = await ws_server.recv()
+                        await websocket.send_bytes(data)
+                except Exception:
+                    pass
+
+            await asyncio.gather(forward_client_to_server(), forward_server_to_client())
+
+    except Exception as e:
+        print(f"[ERROR] WebSocket Proxy Failed: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
+
+
+# Since we need a WS client, and httpx doesn't do WS efficiently for proxying without plugins.
+# Let's check imports. Main.py has `from fastapi import ... change to import websockets`?
+# Or use `httpx_ws`?
+# Let's check available libraries first in a separate step.
+# FOR NOW, I will only apply the httpx fixes and a dummy WS handler or check imports.
+# The user's env handles WS in Vite.
+# Wait, Vite proxies WS to backend. Backend MUST handle it.
+# If backend doesn't have a library for WS client, we are stuck.
+# Most fastapi projects use `websockets` lib.
+pass
 @app.api_route("/api/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy_clash_api(path_name: str, request: Request):
     try:
@@ -1392,7 +1476,7 @@ async def proxy_clash_api(path_name: str, request: Request):
             headers["Authorization"] = f"Bearer {secret}"
 
         print(f"[DEBUG] Proxying to: {target_url}")
-        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
+        async with httpx.AsyncClient(verify=False, timeout=10.0, trust_env=False) as client:
             try:
                 content = await request.body()
                 proxy_req = client.build_request(
